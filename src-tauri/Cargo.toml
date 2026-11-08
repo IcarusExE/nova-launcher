@@ -1,0 +1,22 @@
+[package]
+name = "nova-launcher"
+version = "0.1.0"
+description = "An independent desktop launcher for Roblox experiences"
+authors = ["Nova Launcher contributors"]
+edition = "2021"
+license = "MIT"
+rust-version = "1.90"
+
+[lib]
+name = "nova_launcher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.38", features = ["bundled"] }
