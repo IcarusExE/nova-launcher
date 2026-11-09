@@ -225,7 +225,7 @@ export function Settings({
                 </SettingRow>
                 <SettingRow
                   title="Preferred client"
-                  description="Saved for future launch support."
+                  description="Selects the client used by Launch Roblox. Experience pages open in your browser."
                 >
                   <select
                     aria-label="Preferred client"
@@ -285,7 +285,7 @@ export function Settings({
               </p>
               <SettingRow
                 title="Installed version"
-                description="First development milestone"
+                description="Native launch preview · Windows runtime unverified"
               >
                 <span className="version-text">0.1.0</span>
               </SettingRow>
@@ -296,7 +296,7 @@ export function Settings({
               <img src="/nova.svg" alt="Nova" />
               <h2>Nova Launcher</h2>
               <p>A considered home for your Roblox experiences.</p>
-              <span className="tag">Version 0.1.0 · Milestone 01</span>
+              <span className="tag">Version 0.1.0 · Milestone 02 preview</span>
               <p>
                 Built with Tauri 2, Rust, React, and TypeScript. Local desktop
                 data is stored in SQLite. Open source under the MIT license.

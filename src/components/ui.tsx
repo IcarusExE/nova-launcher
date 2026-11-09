@@ -12,6 +12,8 @@ import {
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { Game } from '../lib/types';
+import { useLauncher } from '../hooks/useLauncher';
+import { LaunchFeedback } from './LaunchFeedback';
 import type { LibraryStore } from '../hooks/useLibrary';
 
 export function FixtureBadge({
@@ -137,6 +139,7 @@ export function GameDetails({
   onClose?: () => void;
 }) {
   const favorite = library.data.favorites.includes(game.id);
+  const launcher = useLauncher();
   return (
     <div className="game-details">
       <div className="detail-art">
@@ -168,15 +171,16 @@ export function GameDetails({
         </div>
         <span className="tag">{game.category}</span>
         <div className="detail-actions">
-          <a
+          <button
             className="button primary"
-            href={`https://www.roblox.com/games/${game.id}`}
-            target="_blank"
-            rel="noreferrer"
+            disabled={!launcher.desktop || launcher.busy}
+            onClick={() => void launcher.openExperience(game.id)}
           >
-            View on Roblox
+            {launcher.busy && launcher.lastAction === 'openExperience'
+              ? 'Opening page…'
+              : 'Open experience page'}
             <ArrowUpRight size={16} />
-          </a>
+          </button>
           <button
             className={`button ${favorite ? 'selected' : ''}`}
             disabled={!library.ready || library.saving}
@@ -186,13 +190,24 @@ export function GameDetails({
             <Heart size={18} fill={favorite ? 'currentColor' : 'none'} />
           </button>
         </div>
+        <LaunchFeedback action="openExperience" />
         <div className="notice">
           <Gamepad2 size={18} />
           <span>
-            In-app launching is coming in a later milestone. The link opens the
-            Roblox website.
+            Join experience through the official Roblox page. Browser dispatch
+            does not confirm game entry. Launch Roblox opens the client
+            separately.
           </span>
         </div>
+        <ExternalText href={`https://www.roblox.com/games/${game.id}`}>
+          View on Roblox
+        </ExternalText>
+        {!launcher.desktop && (
+          <p className="muted">
+            Launch requests require the desktop app. The link opens the Roblox
+            website.
+          </p>
+        )}
       </div>
     </div>
   );

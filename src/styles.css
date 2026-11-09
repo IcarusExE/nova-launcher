@@ -2025,3 +2025,73 @@ select {
     scroll-behavior: auto !important;
   }
 }
+
+/* Native request controls retain the existing launcher surfaces and spacing. */
+.launch-client {
+  width: 100%;
+  margin-top: 16px;
+}
+.launch-error {
+  color: var(--destructive, #ef9a9a);
+}
+.launch-feedback {
+  line-height: 1.6;
+}
+.history-warning {
+  display: block;
+  margin-top: 8px;
+  font-weight: 500;
+  color: #ddba79;
+}
+.request-history {
+  display: grid;
+  gap: 12px;
+}
+.request-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+.request-row > svg {
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.request-row > div {
+  min-width: 0;
+  flex: 1;
+}
+.request-row strong {
+  display: block;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.request-row span,
+.request-row time {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.request-row .text-button {
+  margin-top: 5px;
+  font-size: 11px;
+}
+.request-row time {
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .request-row {
+    flex-wrap: wrap;
+  }
+  .request-row time {
+    width: 100%;
+    text-align: left;
+    padding-left: 33px;
+  }
+}

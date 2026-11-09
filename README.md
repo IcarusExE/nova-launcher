@@ -2,13 +2,16 @@
 
 # Nova Launcher
 
-An independent, open-source desktop home for Roblox experiences. Milestone 01
-targets Windows 10/11 and Linux, with CachyOS as the initial development platform.
+An independent, open-source desktop home for Roblox experiences, targeting
+Windows 10/11 and Linux with CachyOS as the initial development platform.
 
-This milestone provides five navigable pages, a local development catalog,
-favorites, library grid/list views, profile-search previews, persisted settings,
-and read-only installation detection. **Roblox launching, live Roblox data,
-Discord RPC, and automatic updates are not implemented.**
+Milestone 02 adds native standalone Sober dispatch, a constrained Windows desktop
+Player launch path, official experience-page fallback, and SQLite request history
+to the existing five-page launcher. **Linux OS dispatch has been tested locally;
+Windows runtime verification is outstanding, so Milestone 02 is not signed off as
+complete.** A successful request is not proof of client startup or game entry.
+Live Roblox data, Discord RPC, automatic updates, FastFlags, and multi-instance
+features remain unavailable.
 
 ## Run on CachyOS
 
@@ -28,9 +31,10 @@ npm run tauri dev
 ```
 
 For Rust installation, use the official instructions at <https://rustup.rs>.
-No global npm packages are required. Flatpak is optional and is used only to
-inspect `org.vinegarhq.Sober`. Nova does not install or run Sober. The minimal
-stable Rust toolchain was installed during this development task.
+No global npm packages are required. Linux client launching requires Flatpak and
+an existing `org.vinegarhq.Sober` installation. Nova detects and runs that installed
+app; it does not install Sober or modify its configuration. `xdg-open` and a default
+browser provide the experience-page fallback. No account credentials are collected.
 
 To run the UI alone:
 
@@ -78,11 +82,12 @@ src/
   components/       Shared shell, game UI, and installation panel
   pages/            Home, Discover, Library, Profile, Settings
   data/             Explicitly labeled development catalog
-  hooks/            Persistence state and write handling
+  hooks/            Persistence, detection, and launch request state
   lib/              Types and the browser/native service boundary
 src-tauri/src/
   adapters/         WindowsRobloxAdapter and LinuxSoberAdapter
   storage.rs        SQLite schema, transactions, validation, tests
+  launch.rs         Validated native requests and structured receipts
   lib.rs            Narrow Tauri command registration
 e2e/                Browser interaction and resizing checks
 docs/               Architecture, fixture, and security boundaries
@@ -91,15 +96,16 @@ docs/               Architecture, fixture, and security boundaries
 Desktop storage is `nova.sqlite3` inside Tauri's platform-specific application
 data directory for `io.novalauncher.desktop` (on Linux, normally
 `~/.local/share/io.novalauncher.desktop/`). Favorites and preferences persist
-across restarts. The launch-history table is reserved for future verified native
-launches; no history is fabricated or seeded.
+across restarts. Schema v2 preserves v1 data and adds the newest 100 accepted
+client/browser requests. History is written only by Rust after accepted dispatch;
+it does not imply game entry or playtime, and is never fabricated or seeded.
 
 Catalog rankings, player counts, and profile previews are **development fixtures**.
 Profile search supports the sample username `Roblox`; other names show an empty
 state. Public links open the real Roblox website. No login is required.
 
 See [architecture and security](docs/architecture.md) for adapter behavior and
-integration boundaries. Reference artwork has separate
+integration boundaries, and [Milestone 02 verification](docs/milestone-02-verification.md)
+for documented mechanisms, real-hardware coverage, limitations, and manual steps. Reference artwork has separate
 [provenance and redistribution limitations](public/artwork/README.md).
 The application code is MIT licensed. Nova is not affiliated with Roblox or Sober.
-# nova-launcher

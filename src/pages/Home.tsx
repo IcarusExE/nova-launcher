@@ -15,9 +15,9 @@ import {
   EmptyState,
   FixtureBadge,
   GameCard,
-  Loading,
   SectionHeading,
 } from '../components/ui';
+import { RequestHistory } from '../components/RequestHistory';
 import { InstallationPanel } from '../components/InstallationPanel';
 import type { InstallationState } from '../components/InstallationPanel';
 
@@ -33,9 +33,6 @@ export function Home({
   selectGame: (game: Game) => void;
 }) {
   const featured = games[0];
-  const recent = library.data.recent
-    .map((r) => games.find((g) => g.id === r.gameId))
-    .filter((g): g is Game => Boolean(g));
   return (
     <>
       <div className="page-heading">
@@ -129,37 +126,10 @@ export function Home({
           <section className="content-section recent-section">
             <SectionHeading
               icon={<Clock3 size={20} />}
-              title="Recently launched"
+              title="Recent requests"
               action={<span className="quiet-label">On this device</span>}
             />
-            {library.loading ? (
-              <Loading />
-            ) : recent.length ? (
-              <div className="game-grid">
-                {recent.map((g) => (
-                  <GameCard
-                    key={g.id}
-                    game={g}
-                    library={library}
-                    onSelect={selectGame}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="recent-empty">
-                <div className="empty-icon small">
-                  <Clock3 size={23} />
-                </div>
-                <div>
-                  <h3>A fresh start</h3>
-                  <p>
-                    Your launched games will appear here once launching is
-                    supported.
-                  </p>
-                </div>
-                <span className="tag">Coming later</span>
-              </div>
-            )}
+            <RequestHistory limit={4} selectGame={selectGame} />
           </section>
         </div>
         <aside className="home-rail">

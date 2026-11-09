@@ -85,3 +85,115 @@ test('desktop navigation, persistence, dialogs, and responsive layouts', async (
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('native launch UI with simulated IPC: pending, rejection, fallback, and history', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    type Request = {
+      action: 'launchClient' | 'openExperience';
+      adapter?: string;
+      placeId?: string;
+    };
+    const history: {
+      action: string;
+      adapter: string | null;
+      placeId: string | null;
+      acceptedAt: number;
+    }[] = [];
+    let rejectBrowser = true;
+    const host = window as unknown as {
+      isTauri: boolean;
+      __TAURI_INTERNALS__: {
+        invoke: (
+          command: string,
+          args?: { request: Request },
+        ) => Promise<unknown>;
+      };
+    };
+    host.isTauri = true;
+    host.__TAURI_INTERNALS__ = {
+      invoke: async (command, args) => {
+        if (command === 'load_library')
+          return {
+            favorites: [],
+            recent: [],
+            preferences: {
+              compactCards: false,
+              reduceMotion: false,
+              startPage: 'home',
+              preferredAdapter: 'auto',
+            },
+          };
+        if (command === 'load_launch_history') return [...history];
+        if (command === 'detect_installations')
+          return [
+            {
+              id: 'sober',
+              name: 'Sober',
+              platform: 'Linux · Flatpak',
+              installation: 'detected',
+              location: '/test/sober',
+              detail: 'Simulated native installation for browser test',
+              capabilities: { detect: true, launch: true, directJoin: false },
+              runtimeVerified: true,
+            },
+          ];
+        if (command === 'launch_request') {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          if (args!.request.action === 'openExperience' && rejectBrowser) {
+            rejectBrowser = false;
+            throw {
+              code: 'dispatchFailed',
+              message:
+                'The default browser rejected the request. Check its installation and retry.',
+            };
+          }
+          const request = {
+            action: args!.request.action,
+            adapter: args!.request.action === 'launchClient' ? 'sober' : null,
+            placeId: args!.request.placeId ?? null,
+            acceptedAt: Date.now(),
+          };
+          history.unshift(request);
+          return { request, historySaved: true, warning: null };
+        }
+        if (command === 'save_library') return;
+        throw new Error(`Unexpected simulated IPC: ${command}`);
+      },
+    };
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Launch Roblox' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Requesting launch…' }),
+  ).toBeDisabled();
+  await expect(page.getByText(/Client launch request accepted/)).toBeVisible();
+  await expect(page.getByText('Sober · client request')).toBeVisible();
+  await page.getByRole('button', { name: 'Explore game', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Open experience page' }).click();
+  await expect(dialog.getByRole('alert')).toContainText(
+    'default browser rejected',
+  );
+  await dialog.getByRole('button', { name: 'Open experience page' }).click();
+  await expect(
+    dialog.getByText(/Nova has not confirmed game entry/),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('navigation')
+    .getByRole('button', { name: 'Library', exact: true })
+    .click();
+  await page.getByRole('button', { name: /Recent requests/ }).click();
+  await expect(page.locator('.request-row')).toHaveCount(2);
+  await expect(
+    page.getByText('Experience page · Place 2753915549'),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(
+    await page
+      .locator('main')
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+});

@@ -39,5 +39,21 @@ export interface AdapterStatus {
   installation: 'detected' | 'notFound' | 'unsupported' | 'unknown';
   location: string | null;
   detail: string;
-  capabilities: { detect: boolean; launch: boolean };
+  capabilities: { detect: boolean; launch: boolean; directJoin: boolean };
+  runtimeVerified: boolean;
+}
+
+export type LaunchRequest =
+  | { action: 'launchClient'; adapter: Preferences['preferredAdapter'] }
+  | { action: 'openExperience'; placeId: string };
+export interface AcceptedRequest {
+  action: LaunchRequest['action'];
+  adapter: 'windows' | 'sober' | null;
+  placeId: string | null;
+  acceptedAt: number;
+}
+export interface LaunchReceipt {
+  request: AcceptedRequest;
+  historySaved: boolean;
+  warning: string | null;
 }

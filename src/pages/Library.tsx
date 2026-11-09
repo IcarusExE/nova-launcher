@@ -4,6 +4,8 @@ import { games } from '../data/games';
 import type { LibraryStore } from '../hooks/useLibrary';
 import type { Game, Page } from '../lib/types';
 import { EmptyState, GameCard, Loading } from '../components/ui';
+import { RequestHistory } from '../components/RequestHistory';
+import { useLauncher } from '../hooks/useLauncher';
 import { storageLabel } from '../lib/storage';
 
 export function Library({
@@ -15,13 +17,11 @@ export function Library({
   navigate: (page: Page) => void;
   selectGame: (game: Game) => void;
 }) {
+  const launcher = useLauncher();
   const [tab, setTab] = useState('Favorites');
   const [view, setView] = useState('grid');
   const [sort, setSort] = useState('Recently added');
-  const ids =
-    tab === 'Favorites'
-      ? [...library.data.favorites].reverse()
-      : library.data.recent.map((r) => r.gameId);
+  const ids = [...library.data.favorites].reverse();
   const results = ids
     .map((id) => games.find((g) => g.id === id))
     .filter((g): g is Game => Boolean(g))
@@ -40,7 +40,7 @@ export function Library({
       </div>
       <div className="library-toolbar">
         <div className="segmented" aria-label="Library collection">
-          {['Favorites', 'Recently launched'].map((label) => (
+          {['Favorites', 'Recent requests'].map((label) => (
             <button
               key={label}
               className={tab === label ? 'active' : ''}
@@ -56,41 +56,45 @@ export function Library({
               <span>
                 {label === 'Favorites'
                   ? library.data.favorites.length
-                  : library.data.recent.length}
+                  : launcher.history.length}
               </span>
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            aria-label="Sort library"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            <option>Recently added</option>
-            <option>Name</option>
-          </select>
-          <div className="segmented view-switch">
-            <button
-              className={view === 'grid' ? 'active' : ''}
-              aria-label="Grid view"
-              aria-pressed={view === 'grid'}
-              onClick={() => setView('grid')}
+        {tab === 'Favorites' && (
+          <div className="flex items-center gap-3">
+            <select
+              aria-label="Sort library"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
             >
-              <Grid2X2 size={17} />
-            </button>
-            <button
-              className={view === 'list' ? 'active' : ''}
-              aria-label="List view"
-              aria-pressed={view === 'list'}
-              onClick={() => setView('list')}
-            >
-              <List size={18} />
-            </button>
+              <option>Recently added</option>
+              <option>Name</option>
+            </select>
+            <div className="segmented view-switch">
+              <button
+                className={view === 'grid' ? 'active' : ''}
+                aria-label="Grid view"
+                aria-pressed={view === 'grid'}
+                onClick={() => setView('grid')}
+              >
+                <Grid2X2 size={17} />
+              </button>
+              <button
+                className={view === 'list' ? 'active' : ''}
+                aria-label="List view"
+                aria-pressed={view === 'list'}
+                onClick={() => setView('list')}
+              >
+                <List size={18} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-      {library.loading ? (
+      {tab === 'Recent requests' ? (
+        <RequestHistory selectGame={selectGame} />
+      ) : library.loading ? (
         <Loading />
       ) : !library.ready ? (
         <EmptyState
@@ -130,18 +134,8 @@ export function Library({
       ) : (
         <div className="panel library-empty">
           <EmptyState
-            icon={
-              tab === 'Favorites' ? (
-                <BookOpen size={32} />
-              ) : (
-                <Clock3 size={32} />
-              )
-            }
-            title={
-              tab === 'Favorites'
-                ? 'Good things belong here.'
-                : 'Your next chapter starts here.'
-            }
+            icon={<BookOpen size={32} />}
+            title="Good things belong here."
             action={
               <button
                 className="button primary"
@@ -152,9 +146,8 @@ export function Library({
               </button>
             }
           >
-            {tab === 'Favorites'
-              ? 'Tap the heart on any game to save it to your library. Your favorites stay on this device.'
-              : 'Recently launched games will appear here when native launching is available in a future milestone.'}
+            Tap the heart on any game to save it to your library. Your favorites
+            stay on this device.
           </EmptyState>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { defaultLibrary, readLibrary, writeLibrary } from '../lib/storage';
+import { errorMessage } from '../lib/launcher';
 import type { LibraryData, Preferences } from '../lib/types';
 
 export function useLibrary() {
@@ -22,9 +23,7 @@ export function useLibrary() {
       setReady(true);
     } catch (e) {
       setReady(false);
-      setError(
-        e instanceof Error ? e.message : 'Could not read the local library.',
-      );
+      setError(errorMessage(e, 'Could not read the local library.'));
     } finally {
       setLoading(false);
     }
@@ -42,9 +41,7 @@ export function useLibrary() {
       current.current = next;
       setData(next);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Could not save changes. Try again.',
-      );
+      setError(errorMessage(e, 'Could not save changes. Try again.'));
     } finally {
       writing.current = false;
       setSaving(false);

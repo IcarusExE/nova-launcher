@@ -48,7 +48,11 @@ describe('local storage boundary', () => {
   it('never reports an installation or launch support in the web preview', async () => {
     for (const status of await detectAdapters()) {
       expect(status.installation).toBe('unknown');
-      expect(status.capabilities).toEqual({ detect: false, launch: false });
+      expect(status.capabilities).toEqual({
+        detect: false,
+        launch: false,
+        directJoin: false,
+      });
     }
   });
 });

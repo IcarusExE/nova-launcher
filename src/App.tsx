@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { isTauri } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -10,33 +10,20 @@ import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
 import { Settings } from './pages/Settings';
 import { useLibrary } from './hooks/useLibrary';
-import { detectAdapters } from './lib/storage';
-import type { AdapterStatus, Game, Page } from './lib/types';
+import { LauncherContext, useLaunchController } from './hooks/useLauncher';
+import type { Game, Page } from './lib/types';
 
 export function App() {
   const library = useLibrary();
   const [page, setPage] = useState<Page>('home');
   const [query, setQuery] = useState('');
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const [statuses, setStatuses] = useState<AdapterStatus[]>([]);
-  const [detecting, setDetecting] = useState(true);
-  const [detectionError, setDetectionError] = useState<string | null>(null);
   const [windowError, setWindowError] = useState<string | null>(null);
   const startPageApplied = useRef(false);
-  const scan = useCallback(async () => {
-    setDetecting(true);
-    setDetectionError(null);
-    try {
-      setStatuses(await detectAdapters());
-    } catch {
-      setDetectionError('Could not check installations. Rescan to try again.');
-    } finally {
-      setDetecting(false);
-    }
-  }, []);
-  useEffect(() => {
-    void scan();
-  }, [scan]);
+  const launcher = useLaunchController(
+    library.data.preferences.preferredAdapter,
+    library.ready,
+  );
   useEffect(() => {
     if (!library.loading && !startPageApplied.current) {
       setPage(library.data.preferences.startPage);
@@ -59,12 +46,7 @@ export function App() {
   useEffect(() => {
     document.title = `Nova Launcher · ${page[0].toUpperCase() + page.slice(1)}`;
   }, [page]);
-  const installation = {
-    statuses,
-    loading: detecting,
-    error: detectionError,
-    refresh: () => void scan(),
-  };
+  const installation = launcher;
   const navigate = (next: Page) => {
     startPageApplied.current = true;
     setSelectedGame(null);
@@ -72,81 +54,83 @@ export function App() {
     document.getElementById('main-content')?.scrollTo(0, 0);
   };
   return (
-    <div
-      className={`${library.data.preferences.compactCards ? 'compact' : ''} ${library.data.preferences.reduceMotion ? 'reduce-motion' : ''}`}
-      onClickCapture={(event) => {
-        const anchor = (event.target as HTMLElement).closest('a');
-        if (isTauri() && anchor?.href.startsWith('https://www.roblox.com/')) {
-          event.preventDefault();
-          void openUrl(anchor.href).catch(() =>
-            setWindowError(
-              'Could not open the Roblox website in your browser.',
-            ),
-          );
-        }
-      }}
-    >
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-      <Shell
-        page={page}
-        navigate={navigate}
-        onSearch={setQuery}
-        favoriteCount={library.data.favorites.length}
-        onError={setWindowError}
+    <LauncherContext.Provider value={launcher}>
+      <div
+        className={`${library.data.preferences.compactCards ? 'compact' : ''} ${library.data.preferences.reduceMotion ? 'reduce-motion' : ''}`}
+        onClickCapture={(event) => {
+          const anchor = (event.target as HTMLElement).closest('a');
+          if (isTauri() && anchor?.href.startsWith('https://www.roblox.com/')) {
+            event.preventDefault();
+            void openUrl(anchor.href).catch(() =>
+              setWindowError(
+                'Could not open the Roblox website in your browser.',
+              ),
+            );
+          }
+        }}
       >
-        {(library.error || windowError) && (
-          <div role="alert" className="error-banner">
-            <AlertTriangle size={18} />
-            <span>{library.error || windowError}</span>
-            {library.error ? (
-              <button
-                className="text-button"
-                onClick={() => void library.reload()}
-                disabled={library.loading}
-              >
-                <RefreshCw size={14} />
-                Reload saved data
-              </button>
-            ) : (
-              <button
-                className="text-button"
-                onClick={() => setWindowError(null)}
-              >
-                Dismiss
-              </button>
-            )}
-          </div>
-        )}
-        {page === 'home' && (
-          <Home
-            library={library}
-            installation={installation}
-            navigate={navigate}
-            selectGame={setSelectedGame}
-          />
-        )}
-        {page === 'discover' && (
-          <Discover library={library} query={query} setQuery={setQuery} />
-        )}
-        {page === 'library' && (
-          <Library
-            library={library}
-            navigate={navigate}
-            selectGame={setSelectedGame}
-          />
-        )}
-        {page === 'profile' && <Profile />}
-        {page === 'settings' && (
-          <Settings library={library} installation={installation} />
-        )}
-      </Shell>
-      <GameDialog
-        game={selectedGame}
-        library={library}
-        onClose={() => setSelectedGame(null)}
-      />
-    </div>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <Shell
+          page={page}
+          navigate={navigate}
+          onSearch={setQuery}
+          favoriteCount={library.data.favorites.length}
+          onError={setWindowError}
+        >
+          {(library.error || windowError) && (
+            <div role="alert" className="error-banner">
+              <AlertTriangle size={18} />
+              <span>{library.error || windowError}</span>
+              {library.error ? (
+                <button
+                  className="text-button"
+                  onClick={() => void library.reload()}
+                  disabled={library.loading}
+                >
+                  <RefreshCw size={14} />
+                  Reload saved data
+                </button>
+              ) : (
+                <button
+                  className="text-button"
+                  onClick={() => setWindowError(null)}
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+          )}
+          {page === 'home' && (
+            <Home
+              library={library}
+              installation={installation}
+              navigate={navigate}
+              selectGame={setSelectedGame}
+            />
+          )}
+          {page === 'discover' && (
+            <Discover library={library} query={query} setQuery={setQuery} />
+          )}
+          {page === 'library' && (
+            <Library
+              library={library}
+              navigate={navigate}
+              selectGame={setSelectedGame}
+            />
+          )}
+          {page === 'profile' && <Profile />}
+          {page === 'settings' && (
+            <Settings library={library} installation={installation} />
+          )}
+        </Shell>
+        <GameDialog
+          game={selectedGame}
+          library={library}
+          onClose={() => setSelectedGame(null)}
+        />
+      </div>
+    </LauncherContext.Provider>
   );
 }

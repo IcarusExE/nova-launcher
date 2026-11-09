@@ -61,7 +61,8 @@ export async function detectAdapters(): Promise<AdapterStatus[]> {
     installation: 'unknown',
     location: null,
     detail: 'Installation detection is available in the desktop app.',
-    capabilities: { detect: false, launch: false },
+    capabilities: { detect: false, launch: false, directJoin: false },
+    runtimeVerified: false,
   }));
 }
 export const storageLabel = isTauri()

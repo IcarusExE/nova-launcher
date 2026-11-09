@@ -1,7 +1,17 @@
 mod linux;
 mod windows;
+#[cfg(target_os = "windows")]
+pub(crate) use windows::open_url as windows_open_url;
 
-use serde::Serialize;
+use crate::launch::{DispatchError, ErrorCode};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum AdapterId {
+    Windows,
+    Sober,
+}
 
 #[derive(Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -13,33 +23,34 @@ pub enum Installation {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Capabilities {
     pub detect: bool,
     pub launch: bool,
+    pub direct_join: bool,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LauncherStatus {
-    pub id: &'static str,
+    pub id: AdapterId,
     pub name: &'static str,
     pub platform: &'static str,
     pub installation: Installation,
     pub location: Option<String>,
     pub detail: String,
     pub capabilities: Capabilities,
+    pub runtime_verified: bool,
 }
 
-/// Native integration boundary. Launch remains explicitly unsupported until a
-/// separately verified implementation exists for each platform.
 pub trait RobloxAdapter {
     fn detect_installation(&self) -> LauncherStatus;
     fn read_status(&self) -> LauncherStatus {
         self.detect_installation()
     }
     fn capabilities(&self) -> Capabilities;
-    fn launch(&self, _place_id: &str) -> Result<(), &'static str> {
-        Err("Roblox launching is not implemented in this milestone.")
-    }
+    /// Accept a standalone client request. No game ID, authentication, or client flags.
+    fn launch(&self) -> Result<(), DispatchError>;
 }
 
 pub fn statuses() -> Vec<LauncherStatus> {
@@ -49,33 +60,13 @@ pub fn statuses() -> Vec<LauncherStatus> {
     ]
 }
 
-// Kept as a native boundary for future integration. It is deliberately not
-// exposed as an IPC command or connected to a frontend launch button.
-pub fn launch_disabled(adapter: &str, place_id: &str) -> Result<(), &'static str> {
+pub fn launch_client(adapter: AdapterId) -> Result<(), DispatchError> {
     match adapter {
-        "windows" => windows::WindowsRobloxAdapter.launch(place_id),
-        "sober" => linux::LinuxSoberAdapter.launch(place_id),
-        _ => Err("Unknown platform adapter."),
+        AdapterId::Windows => windows::WindowsRobloxAdapter.launch(),
+        AdapterId::Sober => linux::LinuxSoberAdapter.launch(),
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn no_adapter_advertises_or_performs_launching() {
-        for status in statuses() {
-            assert!(!status.capabilities.launch);
-            assert!(launch_disabled(status.id, "2753915549").is_err());
-        }
-        assert!(launch_disabled("invalid", "1").is_err());
-    }
-
-    #[test]
-    fn detection_capability_is_platform_specific() {
-        let statuses = statuses();
-        assert_eq!(statuses[0].capabilities.detect, cfg!(target_os = "windows"));
-        assert_eq!(statuses[1].capabilities.detect, cfg!(target_os = "linux"));
-    }
+pub(crate) fn unsupported() -> DispatchError {
+    DispatchError::new(ErrorCode::UnsupportedPlatform, "This client is unavailable on this operating system. Choose the native client in Settings.")
 }

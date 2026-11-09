@@ -137,7 +137,7 @@ describe('Nova milestone flows', () => {
     ).toHaveAttribute('href', 'https://www.roblox.com/users/1/profile');
     expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
   });
-  it('opens a game dialog with a web action and no launch action', async () => {
+  it('opens a game dialog with an honest website fallback', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Explore game' }));
@@ -146,8 +146,13 @@ describe('Nova milestone flows', () => {
       within(dialog).getByRole('link', { name: 'View on Roblox' }),
     ).toHaveAttribute('href', 'https://www.roblox.com/games/2753915549');
     expect(
-      within(dialog).getByText(/In-app launching is coming/),
+      within(dialog).getByText(
+        /Join experience through the official Roblox page/,
+      ),
     ).toBeVisible();
+    expect(
+      within(dialog).getByRole('button', { name: 'Open experience page' }),
+    ).toBeDisabled();
     await user.click(
       within(dialog).getByRole('button', { name: 'Close game details' }),
     );

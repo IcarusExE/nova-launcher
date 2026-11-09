@@ -60,18 +60,28 @@ pub fn migrate(connection: &Connection) -> Result<(), String> {
     let version: i64 = connection
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .map_err(|e| e.to_string())?;
-    if version > 1 {
+    if version > 2 {
         return Err(
             "This library was created by a newer Nova version. It has not been changed.".into(),
         );
     }
-    connection.execute_batch("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;
-        BEGIN;
+    connection
+        .execute_batch("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;")
+        .map_err(|e| e.to_string())?;
+    let transaction = connection
+        .unchecked_transaction()
+        .map_err(|e| e.to_string())?;
+    transaction.execute_batch("
         CREATE TABLE IF NOT EXISTS favorites (game_id TEXT PRIMARY KEY, position INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS recent_games (game_id TEXT PRIMARY KEY, launched_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS preferences (id INTEGER PRIMARY KEY CHECK(id = 1), value TEXT NOT NULL);
-        PRAGMA user_version = 1;
-        COMMIT;").map_err(|e| e.to_string())
+        CREATE TABLE IF NOT EXISTS launch_requests (
+            id INTEGER PRIMARY KEY, action TEXT NOT NULL CHECK(action IN ('launchClient', 'openExperience')),
+            adapter TEXT CHECK(adapter IN ('sober', 'windows')), place_id TEXT, accepted_at INTEGER NOT NULL,
+            CHECK((action = 'launchClient' AND adapter IS NOT NULL AND place_id IS NULL) OR
+                  (action = 'openExperience' AND adapter IS NULL AND place_id IS NOT NULL)));
+        PRAGMA user_version = 2;").map_err(|e| e.to_string())?;
+    transaction.commit().map_err(|e| e.to_string())
 }
 
 pub fn load(connection: &Connection) -> Result<LibraryData, String> {
@@ -122,7 +132,7 @@ pub fn save(connection: &mut Connection, data: &LibraryData) -> Result<(), Strin
     {
         return Err("Favorites must contain valid numeric game IDs (maximum 5000).".into());
     }
-    // Recents can only be recorded by a future verified native launch flow.
+    // Preserve legacy recents. New accepted requests use native-owned launch_requests.
     if load(connection)?.recent != data.recent {
         return Err("Launch history cannot be changed by the frontend.".into());
     }
@@ -141,6 +151,56 @@ pub fn save(connection: &mut Connection, data: &LibraryData) -> Result<(), Strin
     }
     transaction.execute("INSERT INTO preferences (id, value) VALUES (1, ?1) ON CONFLICT(id) DO UPDATE SET value = excluded.value", params![preferences]).map_err(|e| e.to_string())?;
     transaction.commit().map_err(|e| e.to_string())
+}
+
+/// This table is never writable through save_library. Dispatch owns its entries.
+pub fn record_request(
+    connection: &Connection,
+    request: &crate::launch::AcceptedRequest,
+) -> Result<(), String> {
+    let action = serde_json::to_value(request.action).map_err(|e| e.to_string())?;
+    let adapter = request
+        .adapter
+        .map(serde_json::to_value)
+        .transpose()
+        .map_err(|e| e.to_string())?;
+    let tx = connection
+        .unchecked_transaction()
+        .map_err(|e| e.to_string())?;
+    tx.execute("INSERT INTO launch_requests(action, adapter, place_id, accepted_at) VALUES (?1, ?2, ?3, ?4)",
+        params![action.as_str(), adapter.as_ref().and_then(|v| v.as_str()), request.place_id, request.accepted_at]).map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM launch_requests WHERE id NOT IN (SELECT id FROM launch_requests ORDER BY id DESC LIMIT 100)", []).map_err(|e| e.to_string())?;
+    tx.commit().map_err(|e| e.to_string())
+}
+
+pub fn load_requests(
+    connection: &Connection,
+) -> Result<Vec<crate::launch::AcceptedRequest>, String> {
+    let mut statement = connection.prepare("SELECT action, adapter, place_id, accepted_at FROM launch_requests ORDER BY id DESC LIMIT 100").map_err(|e| e.to_string())?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, i64>(3)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    rows.map(|row| {
+        let (action, adapter, place_id, accepted_at) = row.map_err(|e| e.to_string())?;
+        Ok(crate::launch::AcceptedRequest {
+            action: serde_json::from_value(serde_json::Value::String(action))
+                .map_err(|e| e.to_string())?,
+            adapter: adapter
+                .map(|v| serde_json::from_value(serde_json::Value::String(v)))
+                .transpose()
+                .map_err(|e| e.to_string())?,
+            place_id,
+            accepted_at,
+        })
+    })
+    .collect()
 }
 
 #[cfg(test)]
@@ -192,7 +252,7 @@ mod tests {
     #[test]
     fn newer_database_is_not_downgraded() {
         let connection = database();
-        connection.pragma_update(None, "user_version", 2).unwrap();
+        connection.pragma_update(None, "user_version", 3).unwrap();
         assert!(migrate(&connection).is_err());
     }
 }

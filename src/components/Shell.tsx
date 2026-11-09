@@ -117,7 +117,7 @@ export function Shell({
           </button>
           <div className="sidebar-version">
             <span className="status-dot violet" />
-            Milestone 01<span>v0.1.0</span>
+            Native preview<span>v0.1.0</span>
           </div>
         </div>
       </aside>
