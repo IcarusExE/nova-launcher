@@ -102,3 +102,4 @@ See [architecture and security](docs/architecture.md) for adapter behavior and
 integration boundaries. Reference artwork has separate
 [provenance and redistribution limitations](public/artwork/README.md).
 The application code is MIT licensed. Nova is not affiliated with Roblox or Sober.
+# nova-launcher
