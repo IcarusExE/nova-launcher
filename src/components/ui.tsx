@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import {
   ArrowUpRight,
   Heart,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { LocalizedError } from './LocalizedError';
 import { rating } from '../lib/roblox';
 import { useCatalog } from '../hooks/useCatalog';
 import type { Game } from '../lib/types';
@@ -18,15 +20,13 @@ import { useLauncher } from '../hooks/useLauncher';
 import { LaunchFeedback } from './LaunchFeedback';
 import type { LibraryStore } from '../hooks/useLibrary';
 
-export function DataBadge({
-  children = 'Public Roblox API preview',
-}: {
-  children?: ReactNode;
-}) {
+export function DataBadge({ children }: { children?: ReactNode }) {
+  const { t } = useI18n();
+  const defaultText = t('Public Roblox API preview');
   return (
     <span className="fixture-badge">
       <span />
-      {children}
+      {children ?? defaultText}
     </span>
   );
 }
@@ -50,15 +50,13 @@ export function EmptyState({
     </div>
   );
 }
-export function Loading({
-  label = 'Loading your library…',
-}: {
-  label?: string;
-}) {
+export function Loading({ label }: { label?: string }) {
+  const { t } = useI18n();
+  const defaultText = t('Loading your library…');
   return (
     <div className="loading-state" role="status">
       <LoaderCircle size={23} className="spin" />
-      {label}
+      {label ?? defaultText}
     </div>
   );
 }
@@ -92,35 +90,39 @@ export function GameCard({
   onSelect: (game: Game) => void;
   list?: boolean;
 }) {
+  const { t, number, percent } = useI18n();
   const favorite = library.data.favorites.includes(game.id);
   return (
     <article className={`game-card ${list ? 'game-card-list' : ''}`}>
       <button
         className="game-open"
         onClick={() => onSelect(game)}
-        aria-label={`View ${game.name}`}
+        aria-label={t('View {name}', { name: game.name })}
       >
         <div className="game-art">
           <RobloxImage src={game.iconUrl} />
         </div>
         <div className="game-copy">
           <h3>{game.name}</h3>
-          <p>{game.category ?? 'Category unavailable'}</p>
+          <p>{game.category ?? t('Category unavailable')}</p>
           <div className="game-metrics">
             <span>
               <ThumbsUp size={12} />
-              {rating(game) === null ? '—' : `${rating(game)}%`}
+              {rating(game) === null ? '—' : percent(rating(game)!)}
             </span>
             <span>
               <Users size={12} />
-              {game.players === null ? '—' : formatCount(game.players)}
+              {game.players === null ? '—' : number(game.players, true)}
             </span>
           </div>
         </div>
       </button>
       <button
         className={`favorite-button ${favorite ? 'is-favorite' : ''}`}
-        aria-label={`${favorite ? 'Remove' : 'Add'} ${game.name} ${favorite ? 'from' : 'to'} favorites`}
+        aria-label={t(
+          favorite ? 'Remove {name} from favorites' : 'Add {name} to favorites',
+          { name: game.name },
+        )}
         aria-pressed={favorite}
         disabled={!library.ready || library.saving}
         onClick={() => void library.toggleFavorite(game.id)}
@@ -130,11 +132,6 @@ export function GameCard({
     </article>
   );
 }
-export const formatCount = (count: number) =>
-  new Intl.NumberFormat('en', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(count);
 export function GameDetails({
   game,
   library,
@@ -144,6 +141,7 @@ export function GameDetails({
   library: LibraryStore;
   onClose?: () => void;
 }) {
+  const { t, number, percent, date } = useI18n();
   const favorite = library.data.favorites.includes(game.id);
   const launcher = useLauncher();
   return (
@@ -153,7 +151,7 @@ export function GameDetails({
         {onClose && (
           <button
             className="icon-button detail-close"
-            aria-label="Close game details"
+            aria-label={t('Close game details')}
             onClick={onClose}
           >
             <X size={18} />
@@ -162,35 +160,43 @@ export function GameDetails({
       </div>
       <div className="detail-body">
         <DataBadge>
-          {game.cached ? 'Saved Roblox snapshot' : 'Public Roblox API preview'}
+          {game.cached
+            ? t('Saved Roblox snapshot')
+            : t('Public Roblox API preview')}
         </DataBadge>
         <h2>{game.name}</h2>
-        <p className="muted">By {game.creator}</p>
+        <p className="muted">{t('By {creator}', { creator: game.creator })}</p>
         <p
           className="experience-description"
           tabIndex={0}
-          aria-label="Experience description"
+          aria-label={t('Experience description')}
         >
-          {game.description || 'No public description.'}
+          {game.description || t('No public description.')}
         </p>
         <div className="detail-stats">
           <span>
             <ThumbsUp size={17} />
-            <b>{rating(game) === null ? '—' : `${rating(game)}%`}</b> approval
+            <b>{rating(game) === null ? '—' : percent(rating(game)!)}</b>{' '}
+            {t('approval')}
           </span>
           <span>
             <Users size={17} />
             <b>
-              {game.players === null ? '—' : formatCount(game.players)}
+              {game.players === null ? '—' : number(game.players, true)}
             </b>{' '}
-            playing (snapshot)
+            {t('playing (snapshot)')}
           </span>
         </div>
         <p className="quiet-label">
-          Observed {new Date(game.observedAt).toLocaleString()} · Place{' '}
-          {game.id} · Universe {game.universeId}
+          {t('Observed {date} · Place {place} · Universe {universe}', {
+            date: date(game.observedAt, true),
+            place: game.id,
+            universe: game.universeId,
+          })}
         </p>
-        <span className="tag">{game.category ?? 'Category unavailable'}</span>
+        <span className="tag">
+          {game.category ?? t('Category unavailable')}
+        </span>
         <div className="detail-actions">
           <button
             className="button primary"
@@ -198,15 +204,15 @@ export function GameDetails({
             onClick={() => void launcher.openExperience(game.id)}
           >
             {launcher.busy && launcher.lastAction === 'openExperience'
-              ? 'Opening page…'
-              : 'Open experience page'}
+              ? t('Opening page…')
+              : t('Open experience page')}
             <ArrowUpRight size={16} />
           </button>
           <button
             className={`button ${favorite ? 'selected' : ''}`}
             disabled={!library.ready || library.saving}
             onClick={() => void library.toggleFavorite(game.id)}
-            aria-label={`${favorite ? 'Remove' : 'Add'} favorite`}
+            aria-label={t(favorite ? 'Remove favorite' : 'Add favorite')}
           >
             <Heart size={18} fill={favorite ? 'currentColor' : 'none'} />
           </button>
@@ -215,18 +221,19 @@ export function GameDetails({
         <div className="notice">
           <Gamepad2 size={18} />
           <span>
-            Join experience through the official Roblox page. Browser dispatch
-            does not confirm game entry. Launch Roblox opens the client
-            separately.
+            {t(
+              'Join experience through the official Roblox page. Browser dispatch does not confirm game entry. Launch Roblox opens the client separately.',
+            )}
           </span>
         </div>
         <ExternalText href={`https://www.roblox.com/games/${game.id}`}>
-          View on Roblox
+          {t('View on Roblox')}
         </ExternalText>
         {!launcher.desktop && (
           <p className="muted">
-            Launch requests require the desktop app. The link opens the Roblox
-            website.
+            {t(
+              'Launch requests require the desktop app. The link opens the Roblox website.',
+            )}
           </p>
         )}
       </div>
@@ -242,17 +249,50 @@ export function GameDialog({
   library: LibraryStore;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
+  const open = game !== null;
   useEffect(() => {
-    if (game && ref.current && !ref.current.open) ref.current.showModal();
-  }, [game]);
+    const dialog = ref.current;
+    if (!open || !dialog) return;
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [open]);
   if (!game) return null;
   return (
     <dialog
       ref={ref}
       className="game-dialog"
-      aria-label={`${game.name} details`}
+      aria-label={t('{name} details', { name: game.name })}
       onCancel={onClose}
+      onKeyDown={(event) => {
+        if (event.key !== 'Tab') return;
+        const controls = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((element) => element.getClientRects().length > 0);
+        const first = controls[0],
+          last = controls.at(-1);
+        if (!first || !last) {
+          event.preventDefault();
+          return;
+        }
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -284,6 +324,7 @@ export function RobloxImage({
   src: string | null;
   className?: string;
 }) {
+  const { t } = useI18n();
   const [failed, setFailed] = useState<string | null>(null);
   return src && failed !== src ? (
     <img
@@ -298,46 +339,43 @@ export function RobloxImage({
   ) : (
     <span
       className={`image-unavailable ${className ?? ''}`}
-      aria-label="Artwork unavailable"
+      aria-label={t('Artwork unavailable')}
     >
       <Gamepad2 size={28} />
-      <span>Artwork unavailable</span>
+      <span>{t('Artwork unavailable')}</span>
     </span>
   );
 }
 export function CatalogFeedback() {
+  const { t } = useI18n();
   const catalog = useCatalog();
   const issues = [
     ...(catalog.error ? [catalog.error] : []),
     ...catalog.warnings,
   ];
   return (
-    <div className="data-feedback" aria-live="polite">
-      {catalog.loading && (
-        <Loading
-          label={
-            catalog.experiences.length
-              ? 'Refreshing Roblox data…'
-              : 'Loading Roblox data…'
-          }
-        />
-      )}
+    <div
+      className="data-feedback"
+      aria-live="polite"
+      aria-busy={catalog.loading}
+    >
       {issues.map((issue, index) => (
-        <p role="status" key={`${issue.code}-${index}`}>
+        <div role="status" key={`${issue.code}-${index}`}>
           <strong>
             {issue.code === 'offline'
-              ? 'Offline'
+              ? t('Offline')
               : issue.code === 'desktopRequired'
-                ? 'Desktop app required'
-                : 'Data unavailable'}
+                ? t('Desktop app required')
+                : t('Data unavailable')}
           </strong>{' '}
-          · {issue.message}
-        </p>
+          <LocalizedError error={issue} />
+        </div>
       ))}
       {catalog.experiences.some((g) => g.cached) && (
         <p>
-          Saved snapshots may be out of date. Favorites and launch requests
-          remain on this device.
+          {t(
+            'Saved snapshots may be out of date. Favorites and launch requests remain on this device.',
+          )}
         </p>
       )}
       <button
@@ -345,7 +383,16 @@ export function CatalogFeedback() {
         disabled={catalog.loading}
         onClick={() => void catalog.refresh()}
       >
-        Refresh Roblox data
+        {catalog.loading && (
+          <LoaderCircle size={14} className="spin" aria-hidden="true" />
+        )}
+        {catalog.loading
+          ? t(
+              catalog.experiences.length
+                ? 'Refreshing Roblox data…'
+                : 'Loading Roblox data…',
+            )
+          : t('Refresh Roblox data')}
       </button>
     </div>
   );

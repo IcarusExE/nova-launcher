@@ -2251,3 +2251,85 @@ select {
   flex-wrap: wrap;
   overflow-wrap: anywhere;
 }
+
+/* Locale changes update text in place. Stable controls and bounded text retain
+   keyboard focus and avoid scroll anchoring across translated paragraphs. */
+#main-content {
+  overflow-anchor: none;
+}
+.diagnostics {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  max-width: 100%;
+}
+.diagnostics summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.diagnostics pre {
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+}
+.localized-error {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.notice > div {
+  min-width: 0;
+}
+.setting-row > div:first-child {
+  min-width: 0;
+}
+.setting-row select {
+  flex-shrink: 0;
+  max-width: 45%;
+}
+.profile-search .button {
+  min-width: 120px;
+}
+.profile-result {
+  min-height: 330px;
+}
+.user-result > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.category-tabs {
+  flex-wrap: wrap;
+}
+.detail-actions .button {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .setting-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .setting-row select {
+    max-width: 100%;
+  }
+  .profile-search .search-input {
+    flex-basis: 100%;
+  }
+  .catalog-toolbar {
+    flex-wrap: wrap;
+  }
+  .catalog-toolbar > div {
+    flex-wrap: wrap;
+  }
+  .library-toolbar {
+    flex-wrap: wrap;
+  }
+}
+.user-results h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.data-feedback > .text-button {
+  min-height: 24px;
+}

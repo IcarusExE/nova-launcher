@@ -149,3 +149,22 @@ contracts are labeled as preview; no hosted backend or new authentication exists
 
 Dependencies remain locked. Unused reference artwork should be excluded or cleared for redistribution before packaging. See [Milestone 02 verification](milestone-02-verification.md)
 for source evidence, hardware coverage, and the outstanding Windows release gate.
+
+## Locale and search identity (Milestone 03.1)
+
+A stable `I18nProvider` resolves `preferences.language` (`system`, `tr`, `en`),
+with native OS locale detection through `system_locale` and browser navigator
+fallback. Language is a backwards-compatible JSON preference, not a new SQLite
+schema. The existing write queue owns persistence and rollback. English defines
+the typed resource contract; Turkish must implement it completely. Named
+interpolation/plural rules and Intl formatting are centralized. Original Roblox
+content is never translated; known error codes select translated summaries and
+verbatim diagnostics remain inspectable. Bootstrap/native reveal wait for the
+selected language. Component keys and state IDs remain independent of labels.
+
+Discover selection is restricted to filtered results and lookup generations follow
+user intent. Profiles clear prior data on input edits, and continuations carry
+explicit query ownership. Stale result data is ignored while consumed search
+cooldowns are retained. Catalog merges prefer the newest observed snapshot and
+do not modify favorites or history. See [03.1 verification](milestone-03.1-verification.md)
+for root causes, precise test boundaries and native/Windows limitations.

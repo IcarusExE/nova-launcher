@@ -34,6 +34,7 @@ export function useLaunchController(
     null,
   );
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [launchFailure, setLaunchFailure] = useState<unknown>(null);
   const [receipt, setReceipt] = useState<LaunchReceipt | null>(null);
   const [history, setHistory] = useState<AcceptedRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -81,6 +82,7 @@ export function useLaunchController(
     setBusy(true);
     setLastAction(request.action);
     setLaunchError(null);
+    setLaunchFailure(null);
     setReceipt(null);
     try {
       const result = await dispatchRequest(request);
@@ -88,6 +90,7 @@ export function useLaunchController(
       await refreshHistory();
     } catch (e) {
       setLaunchError(errorMessage(e));
+      setLaunchFailure(e);
     } finally {
       pending.current = false;
       setBusy(false);
@@ -103,6 +106,7 @@ export function useLaunchController(
     busy,
     lastAction,
     launchError,
+    launchFailure,
     receipt,
     history,
     historyLoading,

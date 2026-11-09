@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { BookOpen, Compass, Grid2X2, Heart, List, Clock3 } from 'lucide-react';
 import { useState } from 'react';
 import { officialPage } from '../lib/roblox';
@@ -18,6 +19,7 @@ export function Library({
   navigate: (page: Page) => void;
   selectGame: (game: Game) => void;
 }) {
+  const { t, number, locale } = useI18n();
   const launcher = useLauncher();
   const { experiences: games } = useCatalog();
   const unknownIds = library.data.favorites.filter(
@@ -30,22 +32,24 @@ export function Library({
   const results = ids
     .map((id) => games.find((g) => g.id === id))
     .filter((g): g is Game => Boolean(g))
-    .sort((a, b) => (sort === 'Name' ? a.name.localeCompare(b.name) : 0));
+    .sort((a, b) =>
+      sort === 'Name' ? a.name.localeCompare(b.name, locale) : 0,
+    );
   return (
     <>
       <div className="page-heading">
         <div>
-          <h1>Your library</h1>
-          <p>A home for the experiences you love.</p>
+          <h1>{t('Your library')}</h1>
+          <p>{t('A home for the experiences you love.')}</p>
         </div>
         <span className="storage-label">
           <span className="status-dot violet" />
-          {storageLabel}
+          {t(storageLabel)}
         </span>
       </div>
       <div className="library-toolbar">
-        <div className="segmented" aria-label="Library collection">
-          {['Favorites', 'Recent requests'].map((label) => (
+        <div className="segmented" aria-label={t('Library collection')}>
+          {(['Favorites', 'Recent requests'] as const).map((label) => (
             <button
               key={label}
               className={tab === label ? 'active' : ''}
@@ -57,11 +61,11 @@ export function Library({
               ) : (
                 <Clock3 size={16} />
               )}
-              {label}
+              {t(label)}
               <span>
                 {label === 'Favorites'
-                  ? library.data.favorites.length
-                  : launcher.history.length}
+                  ? number(library.data.favorites.length)
+                  : number(launcher.history.length)}
               </span>
             </button>
           ))}
@@ -69,17 +73,17 @@ export function Library({
         {tab === 'Favorites' && (
           <div className="flex items-center gap-3">
             <select
-              aria-label="Sort library"
+              aria-label={t('Sort library')}
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
-              <option>Recently added</option>
-              <option>Name</option>
+              <option value="Recently added">{t('Recently added')}</option>
+              <option value="Name">{t('Name')}</option>
             </select>
             <div className="segmented view-switch">
               <button
                 className={view === 'grid' ? 'active' : ''}
-                aria-label="Grid view"
+                aria-label={t('Grid view')}
                 aria-pressed={view === 'grid'}
                 onClick={() => setView('grid')}
               >
@@ -87,7 +91,7 @@ export function Library({
               </button>
               <button
                 className={view === 'list' ? 'active' : ''}
-                aria-label="List view"
+                aria-label={t('List view')}
                 aria-pressed={view === 'list'}
                 onClick={() => setView('list')}
               >
@@ -103,22 +107,24 @@ export function Library({
         <Loading />
       ) : !library.ready ? (
         <EmptyState
-          title="Could not load your library"
+          title={t('Could not load your library')}
           action={
             <button className="button" onClick={() => void library.reload()}>
-              Retry
+              {t('Retry')}
             </button>
           }
         >
-          Your saved data has not been overwritten. Resolve the storage error
-          and try again.
+          {t(
+            'Your saved data has not been overwritten. Resolve the storage error and try again.',
+          )}
         </EmptyState>
       ) : ids.length ? (
         <>
           <p className="section-description library-description">
-            {ids.length} {ids.length === 1 ? 'experience' : 'experiences'} ·
-            game details from Roblox snapshots; unrecognized Place IDs are
-            preserved
+            {t('experiences.count', { count: ids.length })}{' '}
+            {t(
+              '· game details from Roblox snapshots; unrecognized Place IDs are preserved',
+            )}
           </p>
           <div
             className={
@@ -127,10 +133,11 @@ export function Library({
           >
             {unknownIds.map((id) => (
               <article className="panel unknown-experience" key={id}>
-                <h3>Place {id}</h3>
+                <h3>{t('Place {id}', { id })}</h3>
                 <p>
-                  Metadata unavailable. Look up its Universe ID in Discover;
-                  Place and Universe IDs are different.
+                  {t(
+                    'Metadata unavailable. Look up its Universe ID in Discover; Place and Universe IDs are different.',
+                  )}
                 </p>
                 {officialPage('games', id) ? (
                   <a
@@ -139,21 +146,22 @@ export function Library({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Open official experience page
+                    {t('Open official experience page')}
                   </a>
                 ) : (
                   <p>
-                    Stored identifier cannot form a valid Roblox Place URL. The
-                    record has been preserved.
+                    {t(
+                      'Stored identifier cannot form a valid Roblox Place URL. The record has been preserved.',
+                    )}
                   </p>
                 )}
                 <button
                   className="text-button"
                   disabled={!library.ready || library.saving}
                   onClick={() => void library.toggleFavorite(id)}
-                  aria-label={`Remove Place ${id} from favorites`}
+                  aria-label={t('Remove Place {id} from favorites', { id })}
                 >
-                  Remove favorite
+                  {t('Remove favorite')}
                 </button>
               </article>
             ))}
@@ -172,19 +180,20 @@ export function Library({
         <div className="panel library-empty">
           <EmptyState
             icon={<BookOpen size={32} />}
-            title="Good things belong here."
+            title={t('Good things belong here.')}
             action={
               <button
                 className="button primary"
                 onClick={() => navigate('discover')}
               >
                 <Compass size={17} />
-                Discover games
+                {t('Discover games')}
               </button>
             }
           >
-            Tap the heart on any game to save it to your library. Your favorites
-            stay on this device.
+            {t(
+              'Tap the heart on any game to save it to your library. Your favorites stay on this device.',
+            )}
           </EmptyState>
         </div>
       )}

@@ -1,5 +1,7 @@
+import { useI18n } from '../i18n';
 import { SlidersHorizontal, Search, X, Heart } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { LocalizedError } from '../components/LocalizedError';
 import { filterGames, apiError } from '../lib/roblox';
 import type { ApiError } from '../lib/roblox';
 import { useCatalog } from '../hooks/useCatalog';
@@ -21,6 +23,7 @@ export function Discover({
   query: string;
   setQuery: (value: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const catalog = useCatalog();
   const [category, setCategory] = useState('All games');
   const [sort, setSort] = useState('Playing');
@@ -36,15 +39,50 @@ export function Discover({
     },
     [],
   );
-  const results = filterGames(
-    catalog.experiences,
+  const invalidateLookup = () => {
+    ++lookupVersion.current;
+    setLookupLoading(false);
+    setLookupError(null);
+  };
+  useLayoutEffect(() => {
+    invalidateLookup();
+  }, [
     query,
     category,
     sort,
-    favoritesOnly ? library.data.favorites : undefined,
+    favoritesOnly,
+    favoritesOnly ? library.data.favorites : null,
+  ]);
+  const results = useMemo(
+    () =>
+      filterGames(
+        catalog.experiences,
+        query,
+        category,
+        sort,
+        favoritesOnly ? library.data.favorites : undefined,
+        locale,
+      ),
+    [
+      catalog.experiences,
+      query,
+      category,
+      sort,
+      favoritesOnly,
+      library.data.favorites,
+      locale,
+    ],
   );
-  const selected =
-    catalog.experiences.find((g) => g.id === selectedId) ?? results[0];
+  const selected = results.find((g) => g.id === selectedId) ?? results[0];
+  // Commit the fallback so clearing/reordering filters cannot resurrect an older
+  // out-of-filter selection. Stable IDs survive unrelated catalog/locale changes.
+  useEffect(() => {
+    setSelectedId((current) =>
+      results.some((g) => g.id === current)
+        ? current
+        : (results[0]?.id ?? null),
+    );
+  }, [results]);
   const categories = [
     'All games',
     ...new Set(
@@ -55,8 +93,8 @@ export function Discover({
     <>
       <div className="page-heading">
         <div>
-          <h1>Discover</h1>
-          <p>Explore fetched experiences or look up a Universe ID.</p>
+          <h1>{t('Discover')}</h1>
+          <p>{t('Explore fetched experiences or look up a Universe ID.')}</p>
         </div>
         <DataBadge />
       </div>
@@ -66,16 +104,22 @@ export function Discover({
             <Search size={19} />
             <input
               id="discover-search"
-              aria-label="Search games"
-              placeholder="Filter loaded games or creators…"
+              aria-label={t('Search games')}
+              placeholder={t('Filter loaded games or creators…')}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                invalidateLookup();
+                setQuery(e.target.value);
+              }}
             />
             {query && (
               <button
-                aria-label="Clear search"
+                aria-label={t('Clear search')}
                 className="icon-button"
-                onClick={() => setQuery('')}
+                onClick={() => {
+                  invalidateLookup();
+                  setQuery('');
+                }}
               >
                 <X size={17} />
               </button>
@@ -88,10 +132,11 @@ export function Discover({
               target="_blank"
               rel="noreferrer"
             >
-              Open Roblox Discover
+              {t('Open Roblox Discover')}
             </a>{' '}
-            · Filters loaded metadata only. General Roblox experience search is
-            unavailable through verified anonymous APIs.
+            {t(
+              '· Filters loaded metadata only. General Roblox experience search is unavailable through verified anonymous APIs.',
+            )}
           </p>
           <form
             className="universe-lookup"
@@ -120,39 +165,49 @@ export function Discover({
                 });
             }}
           >
-            <label htmlFor="universe-id">Universe ID</label>
+            <label htmlFor="universe-id">{t('Universe ID')}</label>
             <input
               id="universe-id"
               inputMode="numeric"
               pattern="[1-9][0-9]{0,19}"
               maxLength={20}
               required
-              placeholder="e.g. 994732206"
+              placeholder={t('e.g. 994732206')}
+              onInvalid={(e) =>
+                e.currentTarget.setCustomValidity(
+                  t(
+                    'Enter a positive numeric Universe ID (up to 64 bits), without spaces or a URL.',
+                  ),
+                )
+              }
               value={universe}
               onChange={(e) => {
-                ++lookupVersion.current;
-                setLookupLoading(false);
+                invalidateLookup();
+                e.target.setCustomValidity('');
                 setUniverse(e.target.value);
               }}
             />
             <button className="button" disabled={lookupLoading}>
-              {lookupLoading ? 'Looking up…' : 'Look up experience'}
+              {lookupLoading ? t('Looking up…') : t('Look up experience')}
             </button>
           </form>
           {lookupError && (
-            <p role="alert" className="inline-error">
-              {lookupError.message}
-            </p>
+            <div role="alert" className="inline-error">
+              <LocalizedError error={lookupError} />
+            </div>
           )}
-          <div className="category-tabs" aria-label="Game categories">
+          <div className="category-tabs" aria-label={t('Game categories')}>
             {categories.map((c) => (
               <button
                 key={c}
                 aria-pressed={category === c}
                 className={category === c ? 'active' : ''}
-                onClick={() => setCategory(c)}
+                onClick={() => {
+                  invalidateLookup();
+                  setCategory(c);
+                }}
               >
-                {c}
+                {c === 'All games' ? t('All games') : c}
               </button>
             ))}
           </div>
@@ -160,26 +215,34 @@ export function Discover({
             <div className="flex items-center gap-2">
               <SlidersHorizontal size={15} />
               <label className="sr-only" htmlFor="sort-games">
-                Sort games
+                {t('Sort games')}
               </label>
               <select
                 id="sort-games"
                 value={sort}
-                onChange={(e) => setSort(e.target.value)}
+                onChange={(e) => {
+                  invalidateLookup();
+                  setSort(e.target.value);
+                }}
               >
-                <option>Playing</option>
-                <option>Top rated</option>
-                <option>Name</option>
+                <option value="Playing">{t('Playing')}</option>
+                <option value="Top rated">{t('Top rated')}</option>
+                <option value="Name">{t('Name')}</option>
               </select>
-              <span className="quiet-label">{results.length} games</span>
+              <span className="quiet-label">
+                {t('games.count', { count: results.length })}
+              </span>
             </div>
             <button
               className={`filter-chip ${favoritesOnly ? 'active' : ''}`}
               aria-pressed={favoritesOnly}
-              onClick={() => setFavoritesOnly(!favoritesOnly)}
+              onClick={() => {
+                invalidateLookup();
+                setFavoritesOnly(!favoritesOnly);
+              }}
             >
               <Heart size={14} />
-              Favorites
+              {t('Favorites')}
             </button>
           </div>
           <CatalogFeedback />
@@ -193,7 +256,10 @@ export function Discover({
                   <GameCard
                     game={game}
                     library={library}
-                    onSelect={(g) => setSelectedId(g.id)}
+                    onSelect={(g) => {
+                      invalidateLookup();
+                      setSelectedId(g.id);
+                    }}
                   />
                 </div>
               ))}
@@ -203,44 +269,48 @@ export function Discover({
               <EmptyState
                 title={
                   catalog.experiences.length
-                    ? 'No games found'
-                    : 'No experience data available'
+                    ? t('No games found')
+                    : t('No experience data available')
                 }
                 action={
                   catalog.experiences.length ? (
                     <button
                       className="button"
                       onClick={() => {
+                        invalidateLookup();
                         setQuery('');
                         setCategory('All games');
                         setFavoritesOnly(false);
                       }}
                     >
-                      Clear filters
+                      {t('Clear filters')}
                     </button>
                   ) : undefined
                 }
               >
-                Try another filter or a verified Universe ID. No sample results
-                are substituted.
+                {t(
+                  'Try another filter or a verified Universe ID. No sample results are substituted.',
+                )}
               </EmptyState>
             )
           )}
           <div className="catalog-bottom">
             <span>
-              Player and rating values are snapshots when supplied by Roblox.
+              {t(
+                'Player and rating values are snapshots when supplied by Roblox.',
+              )}
             </span>
           </div>
         </div>
         <aside
           className="panel discover-detail"
-          aria-label="Selected game details"
+          aria-label={t('Selected game details')}
         >
           {selected ? (
             <GameDetails game={selected} library={library} />
           ) : (
-            <EmptyState title="Choose an experience">
-              Public metadata will appear here.
+            <EmptyState title={t('Choose an experience')}>
+              {t('Public metadata will appear here.')}
             </EmptyState>
           )}
         </aside>

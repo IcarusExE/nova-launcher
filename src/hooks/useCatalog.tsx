@@ -11,6 +11,21 @@ import type { Game } from '../lib/types';
 import { apiError, robloxRequest } from '../lib/roblox';
 import type { ApiError, Catalog } from '../lib/roblox';
 
+/** Slow cache/refresh responses must not replace a newer verified observation. */
+export function mergeExperiences(existing: Game[], incoming: Game[]): Game[] {
+  const byId = new Map(existing.map((game) => [game.id, game]));
+  for (const game of incoming) {
+    const previous = byId.get(game.id);
+    if (
+      !previous ||
+      game.observedAt > previous.observedAt ||
+      (game.observedAt === previous.observedAt &&
+        (!game.cached || previous.cached))
+    )
+      byId.set(game.id, game);
+  }
+  return [...byId.values()];
+}
 interface CatalogStore extends Catalog {
   loading: boolean;
   error: ApiError | null;
@@ -34,12 +49,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       if (mounted.current && version === generation.current)
         setCatalog((previous) => ({
           ...result,
-          experiences: [
-            ...result.experiences,
-            ...previous.experiences.filter(
-              (g) => !result.experiences.some((f) => f.id === g.id),
-            ),
-          ],
+          experiences: mergeExperiences(
+            previous.experiences,
+            result.experiences,
+          ),
         }));
     } catch (e) {
       if (mounted.current && version === generation.current)
@@ -57,7 +70,14 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           { action: 'cachedCatalog' },
           'catalog',
         );
-        if (active) setCatalog(saved);
+        if (active)
+          setCatalog((previous) => ({
+            ...saved,
+            experiences: mergeExperiences(
+              previous.experiences,
+              saved.experiences,
+            ),
+          }));
       } catch {
         /* A damaged disposable cache must not block a fresh request. */
       }
@@ -78,10 +98,9 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       setCatalog((previous) => ({
         ...previous,
         warnings: result.warnings,
-        experiences: [
-          ...previous.experiences.filter((g) => g.id !== result.experience.id),
+        experiences: mergeExperiences(previous.experiences, [
           result.experience,
-        ],
+        ]),
       }));
     return result.experience;
   }, []);

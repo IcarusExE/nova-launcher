@@ -95,3 +95,57 @@ fn invalid_saved_appearance_is_reported_without_rewriting_it() {
         );
     }
 }
+
+#[test]
+fn legacy_language_defaults_and_all_language_preferences_preserve_v2_records() {
+    use storage::LanguagePreference;
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("nova.sqlite3");
+    let mut db = Connection::open(&path).unwrap();
+    storage::migrate(&db).unwrap();
+    let legacy = r#"{"theme":"light","accent":"teal","compactCards":true,"reduceMotion":true,"startPage":"library","preferredAdapter":"sober"}"#;
+    db.execute("INSERT INTO preferences(id,value) VALUES(1,?1)", [legacy])
+        .unwrap();
+    db.execute(
+        "INSERT INTO favorites(game_id,position) VALUES('123',0)",
+        [],
+    )
+    .unwrap();
+    db.execute("INSERT INTO launch_requests(action,adapter,place_id,accepted_at) VALUES('launchClient','sober',NULL,1)", []).unwrap();
+    let original = storage::load(&db).unwrap();
+    assert_eq!(original.preferences.language, LanguagePreference::System);
+    assert_eq!(
+        db.query_row("SELECT value FROM preferences", [], |row| row
+            .get::<_, String>(0))
+            .unwrap(),
+        legacy
+    );
+    for language in [
+        LanguagePreference::Tr,
+        LanguagePreference::En,
+        LanguagePreference::System,
+    ] {
+        let mut data = original.clone();
+        data.preferences.language = language;
+        storage::save(&mut db, &data).unwrap();
+        drop(db);
+        db = Connection::open(&path).unwrap();
+        storage::migrate(&db).unwrap();
+        assert_eq!(storage::load(&db).unwrap(), data);
+        assert_eq!(storage::load_requests(&db).unwrap().len(), 1);
+        assert_eq!(
+            db.query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
+                .unwrap(),
+            2
+        );
+    }
+    db.execute(
+        "UPDATE preferences SET value=?1",
+        [legacy.replace(
+            "\"theme\":\"light\"",
+            "\"language\":\"de\",\"theme\":\"light\"",
+        )],
+    )
+    .unwrap();
+    assert!(storage::load(&db).is_err());
+}

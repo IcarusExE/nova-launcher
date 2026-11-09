@@ -90,11 +90,11 @@ def saved(path, **expected):
 
 
 @contextmanager
-def application(binary, directory):
+def application(binary, directory, extra_env=None):
     with tempfile.TemporaryFile(mode="w+") as log:
         process = subprocess.Popen(
             [str(binary)],
-            env={**os.environ, "XDG_DATA_HOME": str(directory), "NO_AT_BRIDGE": "0"},
+            env={**os.environ, "XDG_DATA_HOME": str(directory), "NO_AT_BRIDGE": "0", "LC_ALL": "C.UTF-8", **(extra_env or {})},
             stdout=log,
             stderr=log,
         )
@@ -119,7 +119,8 @@ def application(binary, directory):
                 "hydrated native window becomes visible",
             )
             yield app
-            click(element(app, "Close window", "button"))
+            close = wait_for(lambda: find(app,"Close window","button") or find(app,"Pencereyi kapat","button"), "localized close window control")
+            click(close)
             process.wait(timeout=10)
         finally:
             if process.poll() is None:

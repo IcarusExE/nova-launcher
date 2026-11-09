@@ -21,6 +21,7 @@ export interface Game {
 export type Theme = 'dark' | 'light' | 'system';
 export type Accent = 'violet' | 'blue' | 'teal' | 'amber';
 export interface Preferences {
+  language: 'system' | 'tr' | 'en';
   theme: Theme;
   accent: Accent;
   compactCards: boolean;

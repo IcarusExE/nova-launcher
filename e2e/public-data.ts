@@ -17,9 +17,22 @@ export async function mockPublicData(page: Page) {
           (window.publicDataCompletions ||= []).push(request.username);
           return {...profile, username: request.username, displayName: request.username};
         }
-        if (request.action === 'lookupUser') return profile;
-        if (request.action === 'searchUsers') return {users: [{id:request.cursor ? '2':'1', username:request.cursor ? 'Builder':'Roblox', displayName:request.cursor ? 'Builder':'Roblox', verified:false}], nextCursor: request.cursor ? null:'next-page', retryAfterSeconds:0};
-        if (kind === 'experience') return {experience: catalog.experiences[0], warnings:[]};
+        if (request.action === 'lookupUser') {
+          if (control.slowUser) await new Promise(r => setTimeout(r,600));
+          (window.publicDataCompletions ||= []).push('user');
+          return profile;
+        }
+        if (request.action === 'searchUsers') {
+          if(control.rateLimited) throw {code:'rateLimited',message:'Original rate-limit diagnostic',retryAfterSeconds:20};
+          if(control.slowPage && request.cursor) await new Promise(r => setTimeout(r,600));
+          (window.publicDataCompletions ||= []).push(request.cursor ? 'page':'search');
+          return {users: [{id:request.cursor ? '2':'1', username:request.cursor ? 'Builder':'Roblox', displayName:request.cursor ? 'Builder':'Roblox', verified:false}], nextCursor: request.cursor ? null:'next-page', retryAfterSeconds:0};
+        }
+        if (kind === 'experience') {
+          await new Promise(r => setTimeout(r,request.universeId === '1' ? 600 : 30));
+          (window.universeCompletions ||= []).push(request.universeId);
+          return {experience: catalog.experiences[request.universeId === '2' ? 1 : 0], warnings:[]};
+        }
         return catalog;
       }`,
     }),

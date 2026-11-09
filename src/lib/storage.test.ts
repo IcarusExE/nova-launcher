@@ -28,7 +28,12 @@ describe('local storage boundary', () => {
     };
     expect(validateLibrary(legacy)).toEqual({
       ...legacy,
-      preferences: { ...legacy.preferences, theme: 'dark', accent: 'violet' },
+      preferences: {
+        ...legacy.preferences,
+        language: 'system',
+        theme: 'dark',
+        accent: 'violet',
+      },
     });
   });
   it('rejects unknown appearance values without silently replacing them', () => {
@@ -36,6 +41,8 @@ describe('local storage boundary', () => {
       { theme: 'neon' },
       { accent: 'red' },
       { theme: null },
+      { language: 'de' },
+      { language: null },
     ]) {
       expect(() =>
         validateLibrary({

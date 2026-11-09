@@ -1,10 +1,16 @@
 pub mod adapters;
 pub mod launch;
+pub mod locale;
 pub mod roblox;
 pub mod storage;
 
 use storage::{Database, LibraryData};
 use tauri::{Manager, State};
+
+#[tauri::command]
+fn system_locale() -> String {
+    locale::system_locale()
+}
 
 /// The window stays hidden until React has applied hydrated appearance tokens.
 /// Only a typed palette is accepted; no frontend scripts or paths are evaluated.
@@ -107,7 +113,7 @@ pub fn run() {
             app.manage(roblox::ApiState(service));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![roblox_data, reveal_main_window, load_library, save_library, detect_installations, load_launch_history, launch_request])
+        .invoke_handler(tauri::generate_handler![system_locale, roblox_data, reveal_main_window, load_library, save_library, detect_installations, load_launch_history, launch_request])
         .run(tauri::generate_context!())
         .expect("Nova could not start. Check that its application data directory is writable and desktop dependencies are installed.");
 }

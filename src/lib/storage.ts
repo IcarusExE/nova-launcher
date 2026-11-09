@@ -5,6 +5,7 @@ export const defaultLibrary: LibraryData = {
   favorites: [],
   recent: [],
   preferences: {
+    language: 'system',
     theme: 'dark',
     accent: 'violet',
     compactCards: false,
@@ -35,6 +36,8 @@ export function validateLibrary(raw: unknown): LibraryData {
     typeof data.preferences.reduceMotion !== 'boolean' ||
     !pages.includes(data.preferences.startPage) ||
     !['auto', 'windows', 'sober'].includes(data.preferences.preferredAdapter) ||
+    (data.preferences.language !== undefined &&
+      !['system', 'tr', 'en'].includes(data.preferences.language)) ||
     (data.preferences.theme !== undefined &&
       !['dark', 'light', 'system'].includes(data.preferences.theme)) ||
     (data.preferences.accent !== undefined &&
@@ -49,6 +52,7 @@ export function validateLibrary(raw: unknown): LibraryData {
     favorites: [...new Set(data.favorites)],
     preferences: {
       ...data.preferences,
+      language: data.preferences.language ?? 'system',
       theme: data.preferences.theme ?? 'dark',
       accent: data.preferences.accent ?? 'violet',
     },

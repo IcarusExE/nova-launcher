@@ -2,11 +2,19 @@
 // read from SQLite while the Tauri window is hidden; browser storage is never
 // an authority for the desktop application's preferences.
 (() => {
+  const systemLanguage = /^tr(?:[-_.@]|$)/i.test(
+    navigator.languages?.[0] || navigator.language,
+  )
+    ? 'tr'
+    : 'en';
+  document.documentElement.lang = systemLanguage;
   if (window.isTauri) return;
   try {
     const preferences = JSON.parse(
       localStorage.getItem('nova-library-v1'),
     )?.preferences;
+    if (['tr', 'en'].includes(preferences?.language))
+      document.documentElement.lang = preferences.language;
     const theme = preferences?.theme;
     document.documentElement.dataset.theme =
       theme === 'light' ||

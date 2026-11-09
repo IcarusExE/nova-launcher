@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import {
   AlertCircle,
   Check,
@@ -7,6 +8,7 @@ import {
   Terminal,
 } from 'lucide-react';
 import type { AdapterStatus } from '../lib/types';
+import { Diagnostics, LocalizedError } from './LocalizedError';
 import { Loading } from './ui';
 import { useLauncher } from '../hooks/useLauncher';
 import { LaunchFeedback } from './LaunchFeedback';
@@ -24,6 +26,7 @@ export function InstallationPanel({
   state: InstallationState;
   detailed?: boolean;
 }) {
+  const { t } = useI18n();
   const launcher = useLauncher();
   return (
     <section className="panel installation-panel">
@@ -32,12 +35,12 @@ export function InstallationPanel({
           <Monitor size={19} />
         </div>
         <div>
-          <h3>Roblox on your device</h3>
-          <p>Native client availability</p>
+          <h3>{t('Roblox on your device')}</h3>
+          <p>{t('Native client availability')}</p>
         </div>
         <button
           className="icon-button ml-auto"
-          aria-label="Rescan installations"
+          aria-label={t('Rescan installations')}
           disabled={state.loading || launcher.busy}
           onClick={state.refresh}
         >
@@ -45,13 +48,13 @@ export function InstallationPanel({
         </button>
       </div>
       {state.loading ? (
-        <Loading label="Checking installations…" />
+        <Loading label={t('Checking installations…')} />
       ) : state.error ? (
         <div className="inline-error" role="alert">
           <AlertCircle size={18} />
-          {state.error}
+          <LocalizedError error={state.error} context="detection" />
           <button className="text-button" onClick={state.refresh}>
-            Retry
+            {t('Retry')}
           </button>
         </div>
       ) : (
@@ -69,22 +72,37 @@ export function InstallationPanel({
                 <strong>{adapter.name}</strong>
                 <span>
                   {adapter.installation === 'detected'
-                    ? 'Installation found'
+                    ? t('Installation found')
                     : adapter.installation === 'notFound'
-                      ? 'Not installed'
+                      ? t('Not installed')
                       : adapter.installation === 'unsupported'
                         ? adapter.capabilities.detect
-                          ? 'Unsupported installation'
-                          : 'Different platform'
+                          ? t('Unsupported installation')
+                          : t('Different platform')
                         : adapter.capabilities.detect
-                          ? 'Status unavailable'
-                          : 'Desktop app required'}
+                          ? t('Status unavailable')
+                          : t('Desktop app required')}
                 </span>
                 {detailed && (
-                  <p className="adapter-detail">
-                    {adapter.detail}
+                  <div className="adapter-detail">
+                    {adapter.installation === 'detected'
+                      ? t(
+                          adapter.id === 'sober'
+                            ? 'Detected Sober. Experience requests open the official Roblox website.'
+                            : 'Detected official Windows Player. Runtime verification is still required.',
+                        )
+                      : !adapter.capabilities.detect
+                        ? t(
+                            adapter.id === 'sober'
+                              ? 'Sober is available only on Linux.'
+                              : 'Windows Player is available only on Windows.',
+                          )
+                        : t(
+                            'Client detection is unavailable. Rescan and inspect diagnostics.',
+                          )}
+                    <Diagnostics detail={adapter.detail} />
                     {adapter.location && <code>{adapter.location}</code>}
-                  </p>
+                  </div>
                 )}
               </div>
               {adapter.installation === 'detected' ? (
@@ -103,23 +121,33 @@ export function InstallationPanel({
       >
         <Monitor size={16} />
         {launcher.busy && launcher.lastAction === 'launchClient'
-          ? 'Requesting launch…'
-          : 'Launch Roblox'}
+          ? t('Requesting launch…')
+          : t('Launch Roblox')}
       </button>
       <LaunchFeedback action="launchClient" />
       {!state.loading &&
         !state.error &&
         !launcher.canLaunch &&
         launcher.selected && (
-          <p className="adapter-detail">{launcher.selected.detail}</p>
+          <div className="adapter-detail">
+            <Diagnostics detail={launcher.selected.detail} />
+          </div>
         )}
       <p className="panel-footnote">
         <CircleHelp size={13} />
         {launcher.selected
-          ? `Selected: ${launcher.selected.name}. ${!launcher.selected.capabilities.detect ? 'This client is unavailable on this operating system.' : launcher.selected.id === 'windows' && !launcher.selected.runtimeVerified ? 'Windows runtime remains unverified.' : 'Launch requests do not confirm client startup.'}`
+          ? t('Selected: {client}. {detail}', {
+              client: launcher.selected.name,
+              detail: !launcher.selected.capabilities.detect
+                ? t('This client is unavailable on this operating system.')
+                : launcher.selected.id === 'windows' &&
+                    !launcher.selected.runtimeVerified
+                  ? t('Windows runtime remains unverified.')
+                  : t('Launch requests do not confirm client startup.'),
+            })
           : launcher.desktop
-            ? 'Client launching is unsupported on this operating system.'
-            : 'Launch requests require the desktop app.'}
+            ? t('Client launching is unsupported on this operating system.')
+            : t('Launch requests require the desktop app.')}
       </p>
     </section>
   );

@@ -26,6 +26,13 @@ restrictions. No login, shared key or hosted backend is introduced. See the
 [API research](docs/milestone-03-api-research.md) and
 [verification report](docs/milestone-03-verification.md).
 
+Milestone 03.1 adds Turkish/English localization, automatic OS-language detection
+and a persisted Language setting under Appearance. It also fixes filtered
+Discover selection, stale Universe/profile results and pagination ownership, and
+improves modal keyboard focus. Existing data, themes, adapters and schema v2 are
+preserved. See the [localization verification report](docs/milestone-03.1-verification.md)
+for architecture, coverage, checks, native CachyOS evidence and Windows limitations.
+
 ## Run on CachyOS
 
 Use Node.js 22.12+ (24 LTS recommended), npm, and current stable Rust. Install
@@ -107,6 +114,7 @@ src/
   test/             Isolated test fixtures (never imported by production code)
   hooks/            Persistence, detection, and launch request state
   lib/              Types and the browser/native service boundaries
+  i18n/             Typed English/Turkish resources and locale formatting
 src-tauri/src/
   adapters/         WindowsRobloxAdapter and LinuxSoberAdapter
   storage.rs        SQLite schema, transactions, validation, tests

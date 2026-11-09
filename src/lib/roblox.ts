@@ -118,6 +118,7 @@ export function filterGames(
   category: string,
   sort: string,
   favorites?: string[],
+  locale = 'en',
 ) {
   return games
     .filter(
@@ -125,12 +126,12 @@ export function filterGames(
         (!favorites || favorites.includes(g.id)) &&
         (category === 'All games' || g.category === category) &&
         `${g.name} ${g.creator}`
-          .toLocaleLowerCase()
-          .includes(query.trim().toLocaleLowerCase()),
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()),
     )
     .sort((a, b) =>
       sort === 'Name'
-        ? a.name.localeCompare(b.name)
+        ? a.name.localeCompare(b.name, locale)
         : sort === 'Top rated'
           ? (rating(b) ?? -1) - (rating(a) ?? -1)
           : (b.players ?? -1) - (a.players ?? -1),

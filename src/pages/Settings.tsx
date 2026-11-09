@@ -1,3 +1,4 @@
+import { useI18n, accentKeys } from '../i18n';
 import {
   Check,
   CircleHelp,
@@ -66,7 +67,7 @@ const tabs = [
   { name: 'Integrations', icon: Puzzle },
   { name: 'Updates', icon: Download },
   { name: 'About', icon: Info },
-];
+] as const;
 export function Settings({
   library,
   installation,
@@ -74,6 +75,7 @@ export function Settings({
   library: LibraryStore;
   installation: InstallationState;
 }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState('Appearance');
   const prefs = library.data.preferences;
   const disabled = !library.ready;
@@ -81,28 +83,30 @@ export function Settings({
     <>
       <div className="page-heading">
         <div>
-          <h1>Make yourself at home.</h1>
-          <p>A few thoughtful settings. A launcher that feels like yours.</p>
+          <h1>{t('Make yourself at home.')}</h1>
+          <p>
+            {t('A few thoughtful settings. A launcher that feels like yours.')}
+          </p>
         </div>
         <span className="storage-label settings-storage">
-          <span>{storageLabel}</span>
+          <span>{t(storageLabel)}</span>
           <span className="save-status" role="status">
             {!library.ready
               ? library.loading
-                ? 'Loading saved data…'
-                : 'Storage unavailable'
+                ? t('Loading saved data…')
+                : t('Storage unavailable')
               : library.saving
-                ? 'Saving…'
+                ? t('Saving…')
                 : library.error
-                  ? 'Save failed'
-                  : 'Saved on this device'}
+                  ? t('Save failed')
+                  : t('Saved on this device')}
           </span>
         </span>
       </div>
       <div
         className="settings-tabs"
         role="tablist"
-        aria-label="Settings categories"
+        aria-label={t('Settings categories')}
       >
         {tabs.map(({ name, icon: Icon }) => (
           <button
@@ -128,7 +132,7 @@ export function Settings({
             tabIndex={tab === name ? 0 : -1}
           >
             <Icon size={17} />
-            {name}
+            {t(name)}
           </button>
         ))}
       </div>
@@ -145,16 +149,41 @@ export function Settings({
                 <div className="panel-heading">
                   <Palette size={21} />
                   <div>
-                    <h3>Look & feel</h3>
-                    <p>A quieter space for your next adventure.</p>
+                    <h3>{t('Look & feel')}</h3>
+                    <p>{t('A quieter space for your next adventure.')}</p>
                   </div>
                 </div>
                 <SettingRow
-                  title="Color theme"
-                  description="Choose your look, or follow your system."
+                  title={t('Language')}
+                  description={t(
+                    'Choose the interface language. Roblox content keeps its original language.',
+                  )}
                 >
                   <select
-                    aria-label="Color theme"
+                    aria-label={t('Language')}
+                    value={prefs.language}
+                    disabled={disabled}
+                    onChange={(e) =>
+                      void library.updatePreferences({
+                        language: e.target.value as Preferences['language'],
+                      })
+                    }
+                  >
+                    <option value="system">{t('System default')}</option>
+                    <option value="tr" lang="tr">
+                      Türkçe
+                    </option>
+                    <option value="en" lang="en">
+                      English
+                    </option>
+                  </select>
+                </SettingRow>
+                <SettingRow
+                  title={t('Color theme')}
+                  description={t('Choose your look, or follow your system.')}
+                >
+                  <select
+                    aria-label={t('Color theme')}
                     disabled={disabled}
                     value={prefs.theme}
                     onChange={(e) =>
@@ -163,19 +192,19 @@ export function Settings({
                       })
                     }
                   >
-                    <option value="dark">Nova Dark</option>
-                    <option value="light">Light</option>
-                    <option value="system">System</option>
+                    <option value="dark">{t('Nova Dark')}</option>
+                    <option value="light">{t('Light')}</option>
+                    <option value="system">{t('System')}</option>
                   </select>
                 </SettingRow>
                 <SettingRow
-                  title="Accent color"
-                  description="A personal touch, across your launcher."
+                  title={t('Accent color')}
+                  description={t('A personal touch, across your launcher.')}
                 >
                   <div
                     className="accent-options"
                     role="radiogroup"
-                    aria-label="Accent color"
+                    aria-label={t('Accent color')}
                   >
                     {(['violet', 'blue', 'teal', 'amber'] as const).map(
                       (accent, index, colors) => (
@@ -184,16 +213,8 @@ export function Settings({
                           type="button"
                           role="radio"
                           aria-checked={prefs.accent === accent}
-                          aria-label={
-                            accent === 'violet'
-                              ? 'Nova Violet'
-                              : accent[0].toUpperCase() + accent.slice(1)
-                          }
-                          title={
-                            accent === 'violet'
-                              ? 'Nova Violet'
-                              : accent[0].toUpperCase() + accent.slice(1)
-                          }
+                          aria-label={t(accentKeys[accent])}
+                          title={t(accentKeys[accent])}
                           className="accent-swatch"
                           data-accent={accent}
                           disabled={disabled}
@@ -241,12 +262,12 @@ export function Settings({
                   </div>
                 </SettingRow>
                 <SettingRow
-                  title="Compact game cards"
-                  description="Fit more experiences into your library."
+                  title={t('Compact game cards')}
+                  description={t('Fit more experiences into your library.')}
                 >
                   <Toggle
                     checked={prefs.compactCards}
-                    label="Compact game cards"
+                    label={t('Compact game cards')}
                     disabled={disabled}
                     onChange={(compactCards) =>
                       void library.updatePreferences({ compactCards })
@@ -254,12 +275,14 @@ export function Settings({
                   />
                 </SettingRow>
                 <SettingRow
-                  title="Reduce motion"
-                  description="Minimize transitions. System reduced motion is always respected."
+                  title={t('Reduce motion')}
+                  description={t(
+                    'Minimize transitions. System reduced motion is always respected.',
+                  )}
                 >
                   <Toggle
                     checked={prefs.reduceMotion}
-                    label="Reduce motion"
+                    label={t('Reduce motion')}
                     disabled={disabled}
                     onChange={(reduceMotion) =>
                       void library.updatePreferences({ reduceMotion })
@@ -270,8 +293,9 @@ export function Settings({
               <div className="notice">
                 <CircleHelp size={18} />
                 <span>
-                  Appearance preferences are saved on this device. Your system's
-                  reduced motion setting is always respected.
+                  {t(
+                    "Appearance preferences are saved on this device. Your system's reduced motion setting is always respected.",
+                  )}
                 </span>
               </div>
             </>
@@ -282,16 +306,16 @@ export function Settings({
                 <div className="panel-heading">
                   <Monitor size={21} />
                   <div>
-                    <h3>Your launcher</h3>
-                    <p>Ready for your desktop.</p>
+                    <h3>{t('Your launcher')}</h3>
+                    <p>{t('Ready for your desktop.')}</p>
                   </div>
                 </div>
                 <SettingRow
-                  title="Start page"
-                  description="Where Nova opens next time."
+                  title={t('Start page')}
+                  description={t('Where Nova opens next time.')}
                 >
                   <select
-                    aria-label="Start page"
+                    aria-label={t('Start page')}
                     disabled={disabled}
                     value={prefs.startPage}
                     onChange={(e) =>
@@ -300,19 +324,21 @@ export function Settings({
                       })
                     }
                   >
-                    <option value="home">Home</option>
-                    <option value="discover">Discover</option>
-                    <option value="library">Library</option>
-                    <option value="profile">Profile</option>
-                    <option value="settings">Settings</option>
+                    <option value="home">{t('Home')}</option>
+                    <option value="discover">{t('Discover')}</option>
+                    <option value="library">{t('Library')}</option>
+                    <option value="profile">{t('Profile')}</option>
+                    <option value="settings">{t('Settings')}</option>
                   </select>
                 </SettingRow>
                 <SettingRow
-                  title="Preferred client"
-                  description="Selects the client used by Launch Roblox. Experience pages open in your browser."
+                  title={t('Preferred client')}
+                  description={t(
+                    'Selects the client used by Launch Roblox. Experience pages open in your browser.',
+                  )}
                 >
                   <select
-                    aria-label="Preferred client"
+                    aria-label={t('Preferred client')}
                     disabled={disabled}
                     value={prefs.preferredAdapter}
                     onChange={(e) =>
@@ -322,9 +348,9 @@ export function Settings({
                       })
                     }
                   >
-                    <option value="auto">Automatic</option>
-                    <option value="sober">Linux Sober</option>
-                    <option value="windows">Windows Player</option>
+                    <option value="auto">{t('Automatic')}</option>
+                    <option value="sober">{t('Linux Sober')}</option>
+                    <option value="windows">{t('Windows Player')}</option>
                   </select>
                 </SettingRow>
               </section>
@@ -336,19 +362,20 @@ export function Settings({
               <div className="panel-heading">
                 <Puzzle size={22} />
                 <div>
-                  <h3>Discord presence</h3>
-                  <p>Planned for a future milestone</p>
+                  <h3>{t('Discord presence')}</h3>
+                  <p>{t('Planned for a future milestone')}</p>
                 </div>
-                <span className="tag ml-auto">Not connected</span>
+                <span className="tag ml-auto">{t('Not connected')}</span>
               </div>
               <p className="settings-paragraph">
-                Share what you're playing with friends, when you choose. Discord
-                RPC is not implemented, and Nova does not connect to Discord.
+                {t(
+                  "Share what you're playing with friends, when you choose. Discord RPC is not implemented, and Nova does not connect to Discord.",
+                )}
               </p>
               <div className="notice">
                 <ShieldCheck size={18} />
                 <span>
-                  There are no background integration services running.
+                  {t('There are no background integration services running.')}
                 </span>
               </div>
             </section>
@@ -358,18 +385,21 @@ export function Settings({
               <div className="panel-heading">
                 <Download size={22} />
                 <div>
-                  <h3>Application updates</h3>
-                  <p>Manual builds for now</p>
+                  <h3>{t('Application updates')}</h3>
+                  <p>{t('Manual builds for now')}</p>
                 </div>
-                <span className="tag ml-auto">Coming later</span>
+                <span className="tag ml-auto">{t('Coming later')}</span>
               </div>
               <p className="settings-paragraph">
-                Automatic updates and update checks are not implemented in this
-                milestone. Nova does not contact an update server.
+                {t(
+                  'Automatic updates and update checks are not implemented in this milestone. Nova does not contact an update server.',
+                )}
               </p>
               <SettingRow
-                title="Installed version"
-                description="Native launch preview · Windows runtime unverified"
+                title={t('Installed version')}
+                description={t(
+                  'Native launch preview · Windows runtime unverified',
+                )}
               >
                 <span className="version-text">0.1.0</span>
               </SettingRow>
@@ -379,17 +409,21 @@ export function Settings({
             <section className="panel settings-panel about-panel">
               <img src="/nova.svg" alt="Nova" />
               <h2>Nova Launcher</h2>
-              <p>A considered home for your Roblox experiences.</p>
-              <span className="tag">Version 0.1.0 · Public API preview</span>
+              <p>{t('A considered home for your Roblox experiences.')}</p>
+              <span className="tag">
+                {t('Version 0.1.0 · Public API preview')}
+              </span>
               <p>
-                Built with Tauri 2, Rust, React, and TypeScript. Local desktop
-                data is stored in SQLite. Open source under the MIT license.
+                {t(
+                  'Built with Tauri 2, Rust, React, and TypeScript. Local desktop data is stored in SQLite. Open source under the MIT license.',
+                )}
               </p>
               <div className="notice">
                 <Github size={19} />
                 <span>
-                  Independent and community built. Nova is not affiliated with
-                  Roblox Corporation or the Sober project.
+                  {t(
+                    'Independent and community built. Nova is not affiliated with Roblox Corporation or the Sober project.',
+                  )}
                 </span>
               </div>
             </section>
@@ -398,15 +432,18 @@ export function Settings({
         <aside className="panel settings-note">
           <ShieldCheck size={22} />
           <h3>
-            Small footprint.
+            {t('Small footprint.')}
             <br />
-            Clear boundaries.
+            {t('Clear boundaries.')}
           </h3>
           <p>
-            Preferences and favorites stay on your device. No Roblox
-            credentials, no executable modifications, no injection.
+            {t(
+              'Preferences and favorites stay on your device. No Roblox credentials, no executable modifications, no injection.',
+            )}
           </p>
-          <span className="quiet-label">Designed for Windows & Linux</span>
+          <span className="quiet-label">
+            {t('Designed for Windows & Linux')}
+          </span>
         </aside>
       </div>
     </>

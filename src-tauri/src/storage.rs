@@ -45,6 +45,8 @@ pub enum Accent {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Preferences {
     #[serde(default)]
+    pub language: LanguagePreference,
+    #[serde(default)]
     pub theme: Theme,
     #[serde(default)]
     pub accent: Accent,
@@ -53,9 +55,18 @@ pub struct Preferences {
     pub start_page: Page,
     pub preferred_adapter: AdapterSelection,
 }
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum LanguagePreference {
+    #[default]
+    System,
+    Tr,
+    En,
+}
 impl Default for Preferences {
     fn default() -> Self {
         Self {
+            language: LanguagePreference::System,
             theme: Theme::Dark,
             accent: Accent::Violet,
             compact_cards: false,

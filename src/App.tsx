@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { isTauri } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { I18nProvider, useI18n, pageKeys } from './i18n';
+import { LocalizedError } from './components/LocalizedError';
+import type { LibraryStore } from './hooks/useLibrary';
 import { CatalogProvider } from './hooks/useCatalog';
 import { Shell } from './components/Shell';
 import { GameDialog } from './components/ui';
@@ -17,13 +20,24 @@ import type { Game, Page } from './lib/types';
 
 export function App() {
   const library = useLibrary();
+  return (
+    <I18nProvider
+      preference={library.data.preferences.language}
+      loaded={!library.loading}
+    >
+      <LauncherApp library={library} />
+    </I18nProvider>
+  );
+}
+function LauncherApp({ library }: { library: LibraryStore }) {
+  const { ready: localeReady, locale, t } = useI18n();
   const [page, setPage] = useState<Page>('home');
   const [query, setQuery] = useState('');
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [windowError, setWindowError] = useState<string | null>(null);
   const appearanceReady = useAppearance(
     library.data.preferences,
-    !library.loading,
+    !library.loading && localeReady,
     setWindowError,
   );
   const startPageApplied = useRef(false);
@@ -41,6 +55,7 @@ export function App() {
     const keydown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        setSelectedGame(null);
         setPage('discover');
         requestAnimationFrame(() =>
           document.querySelector<HTMLInputElement>('#discover-search')?.focus(),
@@ -51,8 +66,8 @@ export function App() {
     return () => window.removeEventListener('keydown', keydown);
   }, []);
   useEffect(() => {
-    document.title = `Nova Launcher · ${page[0].toUpperCase() + page.slice(1)}`;
-  }, [page]);
+    document.title = `Nova Launcher · ${t(pageKeys[page])}`;
+  }, [page, locale, t]);
   const installation = launcher;
   const navigate = (next: Page) => {
     startPageApplied.current = true;
@@ -81,7 +96,7 @@ export function App() {
           }}
         >
           <a className="skip-link" href="#main-content">
-            Skip to content
+            {t('Skip to content')}
           </a>
           <Shell
             page={page}
@@ -93,7 +108,16 @@ export function App() {
             {(library.error || windowError) && (
               <div role="alert" className="error-banner">
                 <AlertTriangle size={18} />
-                <span>{library.error || windowError}</span>
+                <LocalizedError
+                  error={library.error || windowError}
+                  context={
+                    library.error
+                      ? library.errorOperation === 'read'
+                        ? 'storageRead'
+                        : 'storageSave'
+                      : 'window'
+                  }
+                />
                 {library.error ? (
                   <button
                     className="text-button"
@@ -101,14 +125,14 @@ export function App() {
                     disabled={library.loading}
                   >
                     <RefreshCw size={14} />
-                    Reload saved data
+                    {t('Reload saved data')}
                   </button>
                 ) : (
                   <button
                     className="text-button"
                     onClick={() => setWindowError(null)}
                   >
-                    Dismiss
+                    {t('Dismiss')}
                   </button>
                 )}
               </div>

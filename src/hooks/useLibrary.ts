@@ -16,6 +16,7 @@ export function useLibrary() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorOperation, setErrorOperation] = useState<'read' | 'save'>('read');
   const [ready, setReady] = useState(false);
   const confirmed = useRef(data);
   const available = useRef(false);
@@ -43,6 +44,7 @@ export function useLibrary() {
     await writer.current;
     if (version !== generation.current) return;
     setError(null);
+    setErrorOperation('read');
     try {
       const loaded = await readLibrary();
       if (version !== generation.current) return;
@@ -81,6 +83,7 @@ export function useLibrary() {
             await writeLibrary(next);
             confirmed.current = next;
           } catch (e) {
+            setErrorOperation('save');
             setError(errorMessage(e, 'Could not save changes. Try again.'));
           }
           queue.current.shift();
@@ -99,6 +102,7 @@ export function useLibrary() {
     saving,
     ready,
     error,
+    errorOperation,
     reload: load,
     toggleFavorite: (id: string) =>
       commit(

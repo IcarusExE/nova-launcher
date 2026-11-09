@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -34,6 +35,7 @@ export function Home({
   navigate: (page: Page) => void;
   selectGame: (game: Game) => void;
 }) {
+  const { t, number } = useI18n();
   const catalog = useCatalog();
   const games = catalog.startingPlaceIds
     .map((id) => catalog.experiences.find((g) => g.id === id))
@@ -43,9 +45,12 @@ export function Home({
     <>
       <div className="page-heading">
         <div>
-          <p className="greeting">A little exploration goes a long way.</p>
+          <p className="greeting">
+            {t('A little exploration goes a long way.')}
+          </p>
           <h1>
-            Welcome to your next adventure<span className="heading-dot">.</span>
+            {t('Welcome to your next adventure')}
+            <span className="heading-dot">.</span>
           </h1>
         </div>
         <DataBadge />
@@ -62,28 +67,29 @@ export function Home({
               <div className="featured-copy">
                 <span className="featured-label">
                   <Star size={13} fill="currentColor" />
-                  In the spotlight
+                  {t('In the spotlight')}
                 </span>
                 <span className="hero-category">
-                  {featured.category ?? 'Roblox experience'}
+                  {featured.category ?? t('Roblox experience')}
                 </span>
                 <h2>{featured.name}</h2>
                 <p className="featured-description">
-                  {featured.description || 'No public description available.'}
+                  {featured.description ||
+                    t('No public description available.')}
                 </p>
                 <div className="featured-actions">
                   <button
                     className="button primary"
                     onClick={() => selectGame(featured)}
                   >
-                    Explore game
+                    {t('Explore game')}
                     <ArrowUpRight size={17} />
                   </button>
                   <button
                     className={`button hero-favorite ${library.data.favorites.includes(featured.id) ? 'selected' : ''}`}
                     disabled={!library.ready || library.saving}
                     onClick={() => void library.toggleFavorite(featured.id)}
-                    aria-label={`Favorite ${featured.name}`}
+                    aria-label={t('Favorite {name}', { name: featured.name })}
                     aria-pressed={library.data.favorites.includes(featured.id)}
                   >
                     <Heart
@@ -99,15 +105,16 @@ export function Home({
               </div>
               <span className="featured-caption">
                 {featured.cached
-                  ? 'Saved Roblox snapshot'
-                  : 'Curated pick · Roblox metadata'}
+                  ? t('Saved Roblox snapshot')
+                  : t('Curated pick · Roblox metadata')}
               </span>
             </section>
           ) : (
             <section className="panel">
-              <EmptyState title="Explore Roblox">
-                Verified experience data appears here when available. Your
-                client and library remain accessible.
+              <EmptyState title={t('Explore Roblox')}>
+                {t(
+                  'Verified experience data appears here when available. Your client and library remain accessible.',
+                )}
               </EmptyState>
             </section>
           )}
@@ -115,20 +122,21 @@ export function Home({
           <section className="content-section">
             <SectionHeading
               icon={<Compass size={20} />}
-              title="Starting points"
+              title={t('Starting points')}
               action={
                 <button
                   className="text-button"
                   onClick={() => navigate('discover')}
                 >
-                  Discover all
+                  {t('Discover all')}
                   <ArrowRight size={15} />
                 </button>
               }
             />
             <p className="section-description">
-              Curated starting IDs with Roblox metadata. This is not a
-              popularity ranking.
+              {t(
+                'Curated starting IDs with Roblox metadata. This is not a popularity ranking.',
+              )}
             </p>
             <div className="game-grid home-game-grid">
               {games.slice(0, 5).map((game) => (
@@ -144,8 +152,10 @@ export function Home({
           <section className="content-section recent-section">
             <SectionHeading
               icon={<Clock3 size={20} />}
-              title="Recent requests"
-              action={<span className="quiet-label">On this device</span>}
+              title={t('Recent requests')}
+              action={
+                <span className="quiet-label">{t('On this device')}</span>
+              }
             />
             <RequestHistory limit={4} selectGame={selectGame} />
           </section>
@@ -156,61 +166,62 @@ export function Home({
               <img src="/nova.svg" alt="" />
             </span>
             <h3>
-              Your games.
+              {t('Your games.')}
               <br />
-              Your space.
+              {t('Your space.')}
             </h3>
             <p>
-              Keep your favorites close.
+              {t('Keep your favorites close.')}
               <br />
-              Find something unexpected.
+              {t('Find something unexpected.')}
             </p>
             <button className="text-button" onClick={() => navigate('library')}>
-              Make it yours
+              {t('Make it yours')}
               <ArrowRight size={15} />
             </button>
           </section>
           <InstallationPanel state={installation} />
           <section className="panel quick-panel">
-            <h3>Jump back in</h3>
+            <h3>{t('Jump back in')}</h3>
             <button onClick={() => navigate('library')}>
               <Heart size={17} />
-              <span>My favorites</span>
+              <span>{t('My favorites')}</span>
               <span className="quick-count">
-                {library.data.favorites.length}
+                {number(library.data.favorites.length)}
               </span>
               <ArrowRight size={14} />
             </button>
             <button onClick={() => navigate('discover')}>
               <Sparkles size={17} />
-              <span>Find an experience</span>
+              <span>{t('Find an experience')}</span>
               <ArrowRight size={14} />
             </button>
             <button onClick={() => navigate('settings')}>
               <BookOpen size={17} />
-              <span>Launcher setup</span>
+              <span>{t('Launcher setup')}</span>
               <ArrowRight size={14} />
             </button>
           </section>
           <div className="fixture-note">
             <span className="status-dot violet" />
             <p>
-              Public API preview. Availability depends on Roblox; metadata
-              contracts can change.
+              {t(
+                'Public API preview. Availability depends on Roblox; metadata contracts can change.',
+              )}
             </p>
           </div>
         </aside>
       </div>
       {!library.loading && !library.ready && (
         <EmptyState
-          title="Your library is unavailable"
+          title={t('Your library is unavailable')}
           action={
             <button className="button" onClick={() => void library.reload()}>
-              Try again
+              {t('Try again')}
             </button>
           }
         >
-          Check the storage error above before saving favorites.
+          {t('Check the storage error above before saving favorites.')}
         </EmptyState>
       )}
     </>

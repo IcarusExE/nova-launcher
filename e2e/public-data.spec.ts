@@ -62,7 +62,9 @@ test('browser preview reports desktop requirement without production fixtures', 
 }) => {
   await page.goto('/');
   await expect(
-    page.getByText(/Live Roblox data requires the Nova desktop app/),
+    page
+      .getByText(/Live Roblox data requires the Nova desktop app/)
+      .filter({ visible: true }),
   ).toBeVisible();
   await expect(page.locator('.game-card')).toHaveCount(0);
 });
