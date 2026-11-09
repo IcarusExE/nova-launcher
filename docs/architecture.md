@@ -6,6 +6,27 @@ five pages, development catalog, favorites, and saved preferences remain in plac
 the launch boundary. Desktop calls use typed Tauri IPC. Browser preview uses
 labeled localStorage for library state and disables native launch requests.
 
+## Appearance and settings
+
+`useLibrary` owns hydration and a single serial queue for local library writes.
+Preferences apply immediately; pending patches are rebased on acknowledged data
+after each success or failure. Favorites remain acknowledged-only. Reload waits
+for queued writes and uses a generation guard against stale hydration. Settings
+controls stay enabled during saves and retain DOM identity, focus, and scroll.
+Failures restore consistent saved values and show an actionable error.
+
+`public/appearance.css` centralizes semantic light/dark and accent palettes.
+`useAppearance` applies the stored preference and subscribes to system color
+scheme changes. Compact density and reduced motion use CSS on the existing
+component tree, with the OS motion preference always respected. The native
+window starts hidden; after hydration the typed `reveal_main_window` command
+sets its background and shows it. Browser preview loads palette CSS and a local
+blocking bootstrap before React; its localStorage is never used as native
+appearance authority. Corrupt preference loads still reveal a readable error UI.
+New theme/accent fields default individually for legacy JSON rows; no schema
+migration or history rewrite is needed. See the
+[02.1 verification report](milestone-02.1-verification.md) for evidence and tests.
+
 ## Native actions
 
 `RobloxAdapter` separates detection, status, capabilities, and standalone client

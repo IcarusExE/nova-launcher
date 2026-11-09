@@ -22,9 +22,32 @@ pub enum AdapterSelection {
     Sober,
 }
 
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    #[default]
+    Dark,
+    Light,
+    System,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Accent {
+    #[default]
+    Violet,
+    Blue,
+    Teal,
+    Amber,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Preferences {
+    #[serde(default)]
+    pub theme: Theme,
+    #[serde(default)]
+    pub accent: Accent,
     pub compact_cards: bool,
     pub reduce_motion: bool,
     pub start_page: Page,
@@ -33,6 +56,8 @@ pub struct Preferences {
 impl Default for Preferences {
     fn default() -> Self {
         Self {
+            theme: Theme::Dark,
+            accent: Accent::Violet,
             compact_cards: false,
             reduce_motion: false,
             start_page: Page::Home,

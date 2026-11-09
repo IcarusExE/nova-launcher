@@ -12,6 +12,17 @@ Object.defineProperty(globalThis, 'localStorage', {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  delete document.documentElement.dataset.theme;
+  delete document.documentElement.dataset.accent;
+});
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener() {},
+    removeEventListener() {},
+  }),
 });
 HTMLElement.prototype.scrollTo = () => {};
 HTMLDialogElement.prototype.showModal = function () {

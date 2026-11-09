@@ -5,6 +5,8 @@ export const defaultLibrary: LibraryData = {
   favorites: [],
   recent: [],
   preferences: {
+    theme: 'dark',
+    accent: 'violet',
     compactCards: false,
     reduceMotion: false,
     startPage: 'home',
@@ -32,13 +34,25 @@ export function validateLibrary(raw: unknown): LibraryData {
     typeof data.preferences.compactCards !== 'boolean' ||
     typeof data.preferences.reduceMotion !== 'boolean' ||
     !pages.includes(data.preferences.startPage) ||
-    !['auto', 'windows', 'sober'].includes(data.preferences.preferredAdapter)
+    !['auto', 'windows', 'sober'].includes(data.preferences.preferredAdapter) ||
+    (data.preferences.theme !== undefined &&
+      !['dark', 'light', 'system'].includes(data.preferences.theme)) ||
+    (data.preferences.accent !== undefined &&
+      !['violet', 'blue', 'teal', 'amber'].includes(data.preferences.accent))
   ) {
     throw new Error(
       'Saved library is invalid. Existing data has not been overwritten.',
     );
   }
-  return { ...data, favorites: [...new Set(data.favorites)] };
+  return {
+    ...data,
+    favorites: [...new Set(data.favorites)],
+    preferences: {
+      ...data.preferences,
+      theme: data.preferences.theme ?? 'dark',
+      accent: data.preferences.accent ?? 'violet',
+    },
+  };
 }
 export async function readLibrary(): Promise<LibraryData> {
   if (isTauri()) return validateLibrary(await invoke('load_library'));

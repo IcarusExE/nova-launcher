@@ -76,7 +76,7 @@ export function Settings({
 }) {
   const [tab, setTab] = useState('Appearance');
   const prefs = library.data.preferences;
-  const disabled = !library.ready || library.saving;
+  const disabled = !library.ready;
   return (
     <>
       <div className="page-heading">
@@ -84,8 +84,19 @@ export function Settings({
           <h1>Make yourself at home.</h1>
           <p>A few thoughtful settings. A launcher that feels like yours.</p>
         </div>
-        <span className="storage-label">
-          {library.saving ? 'Saving…' : storageLabel}
+        <span className="storage-label settings-storage">
+          <span>{storageLabel}</span>
+          <span className="save-status" role="status">
+            {!library.ready
+              ? library.loading
+                ? 'Loading saved data…'
+                : 'Storage unavailable'
+              : library.saving
+                ? 'Saving…'
+                : library.error
+                  ? 'Save failed'
+                  : 'Saved on this device'}
+          </span>
         </span>
       </div>
       <div
@@ -140,20 +151,93 @@ export function Settings({
                 </div>
                 <SettingRow
                   title="Color theme"
-                  description="Crafted for late-night exploring."
+                  description="Choose your look, or follow your system."
                 >
-                  <span className="theme-option">
-                    <span />
-                    <Check size={13} />
-                    Nova dark
-                  </span>
+                  <select
+                    aria-label="Color theme"
+                    disabled={disabled}
+                    value={prefs.theme}
+                    onChange={(e) =>
+                      void library.updatePreferences({
+                        theme: e.target.value as Preferences['theme'],
+                      })
+                    }
+                  >
+                    <option value="dark">Nova Dark</option>
+                    <option value="light">Light</option>
+                    <option value="system">System</option>
+                  </select>
                 </SettingRow>
                 <SettingRow
                   title="Accent color"
-                  description="A little violet goes a long way."
+                  description="A personal touch, across your launcher."
                 >
-                  <div className="accent-swatch" aria-label="Violet accent">
-                    <Check size={14} />
+                  <div
+                    className="accent-options"
+                    role="radiogroup"
+                    aria-label="Accent color"
+                  >
+                    {(['violet', 'blue', 'teal', 'amber'] as const).map(
+                      (accent, index, colors) => (
+                        <button
+                          key={accent}
+                          type="button"
+                          role="radio"
+                          aria-checked={prefs.accent === accent}
+                          aria-label={
+                            accent === 'violet'
+                              ? 'Nova Violet'
+                              : accent[0].toUpperCase() + accent.slice(1)
+                          }
+                          title={
+                            accent === 'violet'
+                              ? 'Nova Violet'
+                              : accent[0].toUpperCase() + accent.slice(1)
+                          }
+                          className="accent-swatch"
+                          data-accent={accent}
+                          disabled={disabled}
+                          tabIndex={prefs.accent === accent ? 0 : -1}
+                          onClick={() =>
+                            void library.updatePreferences({ accent })
+                          }
+                          onKeyDown={(e) => {
+                            let next: number;
+                            if (e.key === 'Home') next = 0;
+                            else if (e.key === 'End') next = colors.length - 1;
+                            else if (
+                              [
+                                'ArrowLeft',
+                                'ArrowUp',
+                                'ArrowRight',
+                                'ArrowDown',
+                              ].includes(e.key)
+                            )
+                              next =
+                                (index +
+                                  (['ArrowLeft', 'ArrowUp'].includes(e.key)
+                                    ? -1
+                                    : 1) +
+                                  colors.length) %
+                                colors.length;
+                            else return;
+                            e.preventDefault();
+                            (
+                              e.currentTarget.parentElement?.children[
+                                next
+                              ] as HTMLElement
+                            )?.focus();
+                            void library.updatePreferences({
+                              accent: colors[next],
+                            });
+                          }}
+                        >
+                          {prefs.accent === accent && (
+                            <Check size={15} aria-hidden="true" />
+                          )}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </SettingRow>
                 <SettingRow
@@ -171,7 +255,7 @@ export function Settings({
                 </SettingRow>
                 <SettingRow
                   title="Reduce motion"
-                  description="Keep interface transitions to a minimum."
+                  description="Minimize transitions. System reduced motion is always respected."
                 >
                   <Toggle
                     checked={prefs.reduceMotion}

@@ -13,6 +13,11 @@ complete.** A successful request is not proof of client startup or game entry.
 Live Roblox data, Discord RPC, automatic updates, FastFlags, and multi-instance
 features remain unavailable.
 
+Milestone 02.1 adds persisted Nova Dark/Light/System themes, four accent colors,
+functional card density, and stable settings saves with immediate feedback and
+failure rollback. See the [settings verification report](docs/milestone-02.1-verification.md)
+for root causes, regression coverage, native Linux checks, and manual steps.
+
 ## Run on CachyOS
 
 Use Node.js 22.12+ (24 LTS recommended), npm, and current stable Rust. Install
@@ -74,6 +79,16 @@ their own local Vite server and save screenshots in the system temporary directo
 Native checks require GTK and WebKit on Linux. Windows builds require Microsoft
 C++ Build Tools and WebView2; Windows execution must be validated on Windows
 before release.
+
+Optional real native appearance test (graphical Linux session, Python GI/AT-SPI):
+
+```bash
+python3 scripts/test-native-settings.py
+```
+
+It drives the built Tauri application with actual SQLite IPC in a temporary data
+directory, including restart and forced-save failure checks. It does not touch
+your library or launch external clients.
 
 ## Project layout
 

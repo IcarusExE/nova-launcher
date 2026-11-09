@@ -9,6 +9,7 @@ import { Discover } from './pages/Discover';
 import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
 import { Settings } from './pages/Settings';
+import { useAppearance } from './hooks/useAppearance';
 import { useLibrary } from './hooks/useLibrary';
 import { LauncherContext, useLaunchController } from './hooks/useLauncher';
 import type { Game, Page } from './lib/types';
@@ -19,6 +20,11 @@ export function App() {
   const [query, setQuery] = useState('');
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [windowError, setWindowError] = useState<string | null>(null);
+  const appearanceReady = useAppearance(
+    library.data.preferences,
+    !library.loading,
+    setWindowError,
+  );
   const startPageApplied = useRef(false);
   const launcher = useLaunchController(
     library.data.preferences.preferredAdapter,
@@ -56,7 +62,7 @@ export function App() {
   return (
     <LauncherContext.Provider value={launcher}>
       <div
-        className={`${library.data.preferences.compactCards ? 'compact' : ''} ${library.data.preferences.reduceMotion ? 'reduce-motion' : ''}`}
+        className={`${appearanceReady ? '' : 'appearance-pending'} ${library.data.preferences.compactCards ? 'compact' : ''} ${library.data.preferences.reduceMotion ? 'reduce-motion' : ''}`}
         onClickCapture={(event) => {
           const anchor = (event.target as HTMLElement).closest('a');
           if (isTauri() && anchor?.href.startsWith('https://www.roblox.com/')) {

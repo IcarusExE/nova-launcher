@@ -66,6 +66,7 @@ beforeEach(() => {
           warning: receiptWarning,
         } satisfies LaunchReceipt;
       }
+      if (command === 'reveal_main_window') return;
       if (command === 'save_library') return;
       throw new Error(`Unexpected IPC ${command}`);
     },

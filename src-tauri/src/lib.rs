@@ -5,6 +5,19 @@ pub mod storage;
 use storage::{Database, LibraryData};
 use tauri::{Manager, State};
 
+/// The window stays hidden until React has applied hydrated appearance tokens.
+/// Only a typed palette is accepted; no frontend scripts or paths are evaluated.
+#[tauri::command]
+fn reveal_main_window(window: tauri::WebviewWindow, theme: storage::Theme) -> Result<(), String> {
+    let color = match theme {
+        storage::Theme::Light => tauri::window::Color(244, 244, 247, 255),
+        _ => tauri::window::Color(17, 17, 21, 255),
+    };
+    let background = window.set_background_color(Some(color));
+    window.show().map_err(|e| e.to_string())?;
+    background.map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn load_library(database: State<'_, Database>) -> Result<LibraryData, String> {
     let connection = database
@@ -73,7 +86,7 @@ pub fn run() {
             app.manage(Database(std::sync::Mutex::new(connection)));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![load_library, save_library, detect_installations, load_launch_history, launch_request])
+        .invoke_handler(tauri::generate_handler![reveal_main_window, load_library, save_library, detect_installations, load_launch_history, launch_request])
         .run(tauri::generate_context!())
         .expect("Nova could not start. Check that its application data directory is writable and desktop dependencies are installed.");
 }

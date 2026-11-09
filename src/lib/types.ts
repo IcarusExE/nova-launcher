@@ -17,7 +17,11 @@ export interface Game {
   fixturePlayers: number;
   fixtureRating: number;
 }
+export type Theme = 'dark' | 'light' | 'system';
+export type Accent = 'violet' | 'blue' | 'teal' | 'amber';
 export interface Preferences {
+  theme: Theme;
+  accent: Accent;
   compactCards: boolean;
   reduceMotion: boolean;
   startPage: Page;

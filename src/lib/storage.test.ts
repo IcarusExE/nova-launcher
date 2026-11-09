@@ -15,6 +15,36 @@ describe('local storage boundary', () => {
     await writeLibrary(data);
     expect(await readLibrary()).toEqual(data);
   });
+  it('adds appearance defaults to legacy preferences without changing other data', () => {
+    const legacy = {
+      ...structuredClone(defaultLibrary),
+      favorites: ['123'],
+      preferences: {
+        compactCards: true,
+        reduceMotion: true,
+        startPage: 'library',
+        preferredAdapter: 'sober',
+      },
+    };
+    expect(validateLibrary(legacy)).toEqual({
+      ...legacy,
+      preferences: { ...legacy.preferences, theme: 'dark', accent: 'violet' },
+    });
+  });
+  it('rejects unknown appearance values without silently replacing them', () => {
+    for (const patch of [
+      { theme: 'neon' },
+      { accent: 'red' },
+      { theme: null },
+    ]) {
+      expect(() =>
+        validateLibrary({
+          ...defaultLibrary,
+          preferences: { ...defaultLibrary.preferences, ...patch },
+        }),
+      ).toThrow();
+    }
+  });
   it('does not overwrite corrupt data when reading fails', async () => {
     localStorage.setItem('nova-library-v1', '{broken');
     await expect(readLibrary()).rejects.toThrow();

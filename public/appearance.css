@@ -1,0 +1,92 @@
+/* Shared semantic palettes. Image overlays stay dark in both themes. */
+:root {
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+  --bg: #111115;
+  --chrome: #151519;
+  --surface: #19191f;
+  --surface-raised: #23222b;
+  --surface-hover: #302d38;
+  --border: #37343f;
+  --border-strong: #625b70;
+  --text: #eeedf3;
+  --text-secondary: #c7c3d1;
+  --muted: #aaa6b6;
+  --scroll-thumb: #625b70;
+  --switch-off: #625b70;
+  --success: #8ac4a0;
+  --warning: #f0cb8b;
+  --destructive: #f4bbc7;
+  --error-surface: #3b252a;
+  --error-border: #a66777;
+  --on-accent: #ffffff;
+  --close-hover: #a5354c;
+  --on-image: #f4f1fa;
+  --on-image-muted: #d0cbd9;
+  --image-base: #111d2d;
+  --image-overlay: #17121ecc;
+  --image-border: #ffffff66;
+  --image-scrim: linear-gradient(
+    90deg,
+    #15171fee 3%,
+    #141922e8 24%,
+    #14192280 50%,
+    #14192200 77%
+  );
+  --image-scrim-small: linear-gradient(90deg, #12141eef, #15131c62);
+  --modal-backdrop: #07070bc9;
+  --shadow-small: 0 3px 8px #0002;
+  --shadow-dialog: 0 20px 80px #0009;
+  --accent: var(--accent-solid);
+  --accent-surface: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  --accent-surface-hover: color-mix(in srgb, var(--accent) 28%, var(--surface));
+  --accent-border: color-mix(in srgb, var(--accent) 65%, var(--border));
+  --accent-text: var(--accent-ink-dark);
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f4f7;
+  --chrome: #fafafd;
+  --surface: #ffffff;
+  --surface-raised: #ecebf2;
+  --surface-hover: #e3e0eb;
+  --border: #d2cedd;
+  --border-strong: #888094;
+  --text: #22202c;
+  --text-secondary: #494454;
+  --muted: #625b70;
+  --scroll-thumb: #9b94aa;
+  --switch-off: #756c83;
+  --success: #236c3d;
+  --warning: #80520a;
+  --destructive: #9d233f;
+  --error-surface: #fff0f3;
+  --error-border: #c48595;
+  --accent-text: var(--accent-ink-light);
+}
+:root,
+[data-accent='violet'] {
+  --accent-solid: #7550c8;
+  --accent-ink-dark: #c9b3ff;
+  --accent-ink-light: #5c32a9;
+}
+[data-accent='blue'] {
+  --accent-solid: #2563cb;
+  --accent-ink-dark: #a7caff;
+  --accent-ink-light: #164fa9;
+}
+[data-accent='teal'] {
+  --accent-solid: #087c76;
+  --accent-ink-dark: #8bded1;
+  --accent-ink-light: #05665c;
+}
+[data-accent='amber'] {
+  --accent-solid: #a45c06;
+  --accent-ink-dark: #f8ce87;
+  --accent-ink-light: #874600;
+}

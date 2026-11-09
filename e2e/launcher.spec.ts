@@ -158,6 +158,7 @@ test('native launch UI with simulated IPC: pending, rejection, fallback, and his
           history.unshift(request);
           return { request, historySaved: true, warning: null };
         }
+        if (command === 'reveal_main_window') return;
         if (command === 'save_library') return;
         throw new Error(`Unexpected simulated IPC: ${command}`);
       },
