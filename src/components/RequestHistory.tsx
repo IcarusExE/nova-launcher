@@ -1,6 +1,6 @@
 import { ExternalLink, Monitor } from 'lucide-react';
 import { useLauncher } from '../hooks/useLauncher';
-import { games } from '../data/games';
+import { useCatalog } from '../hooks/useCatalog';
 import type { Game } from '../lib/types';
 import { Loading } from './ui';
 
@@ -11,6 +11,7 @@ export function RequestHistory({
   limit?: number;
   selectGame: (game: Game) => void;
 }) {
+  const { experiences: games } = useCatalog();
   const { history, historyLoading, historyError, refreshHistory } =
     useLauncher();
   if (historyLoading) return <Loading label="Loading request history…" />;
@@ -69,7 +70,7 @@ export function RequestHistory({
                   className="text-button"
                   onClick={() => selectGame(game)}
                 >
-                  {game.name} · fixture details
+                  {game.name} · details
                 </button>
               )}
             </div>

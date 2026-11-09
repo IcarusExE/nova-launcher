@@ -1,21 +1,22 @@
 export type Page = 'home' | 'discover' | 'library' | 'profile' | 'settings';
-export type Category =
-  | 'All games'
-  | 'Adventure'
-  | 'Roleplay'
-  | 'Action'
-  | 'Simulation'
-  | 'Obby'
-  | 'Horror';
+export type Category = string;
+/** id remains the root Place ID used by existing favorites and launch history. */
 export interface Game {
   id: string;
+  universeId: string;
   name: string;
   creator: string;
-  category: Exclude<Category, 'All games'>;
-  image: string;
+  creatorId: string;
+  creatorType: string;
+  category: string | null;
   description: string;
-  fixturePlayers: number;
-  fixtureRating: number;
+  iconUrl: string | null;
+  thumbnailUrl: string | null;
+  players: number | null;
+  upVotes: number | null;
+  downVotes: number | null;
+  observedAt: number;
+  cached: boolean;
 }
 export type Theme = 'dark' | 'light' | 'system';
 export type Accent = 'violet' | 'blue' | 'teal' | 'amber';

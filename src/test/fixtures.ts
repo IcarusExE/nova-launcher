@@ -1,0 +1,96 @@
+import type { Game } from '../lib/types';
+
+// Development catalog only. Counts, descriptions, and ordering are fixtures,
+// not live Roblox data. Artwork is cropped from user-supplied design references.
+export const games: Game[] = [
+  {
+    id: '2753915549',
+    universeId: '994732206',
+    creatorId: '1',
+    creatorType: 'Group',
+    iconUrl: null,
+    thumbnailUrl: null,
+    observedAt: 1700000000000,
+    cached: false,
+    name: 'Blox Fruits',
+    creator: 'Gamer Robot Inc',
+    category: 'Adventure',
+    description:
+      'Set sail for new islands. Train your abilities, discover powerful fruits, and find your next adventure on the open sea.',
+    players: 428600,
+    upVotes: 94,
+    downVotes: 5,
+  },
+  {
+    id: '4924922222',
+    universeId: '1686885941',
+    creatorId: '1',
+    creatorType: 'Group',
+    iconUrl: null,
+    thumbnailUrl: null,
+    observedAt: 1700000000000,
+    cached: false,
+    name: 'Brookhaven RP',
+    creator: 'Brookhaven',
+    category: 'Roleplay',
+    description:
+      'A place to call your own. Explore the town, meet friends, and create your own stories.',
+    players: 319200,
+    upVotes: 87,
+    downVotes: 5,
+  },
+  {
+    id: '13772394625',
+    universeId: '4777817887',
+    creatorId: '1',
+    creatorType: 'Group',
+    iconUrl: null,
+    thumbnailUrl: null,
+    observedAt: 1700000000000,
+    cached: false,
+    name: 'Blade Ball',
+    creator: 'Wiggity',
+    category: 'Action',
+    description:
+      'Stay focused, time your deflections, and be the last player standing in the arena.',
+    players: 76200,
+    upVotes: 93,
+    downVotes: 5,
+  },
+  {
+    id: '8737899170',
+    universeId: '3317771874',
+    creatorId: '1',
+    creatorType: 'Group',
+    iconUrl: null,
+    thumbnailUrl: null,
+    observedAt: 1700000000000,
+    cached: false,
+    name: 'Pet Simulator 99!',
+    creator: 'BIG Games Pets',
+    category: 'Simulation',
+    description:
+      'Collect a team of colorful companions and explore a world full of surprises.',
+    players: 68500,
+    upVotes: 95,
+    downVotes: 5,
+  },
+];
+
+export const catalog = {
+  experiences: games,
+  startingPlaceIds: games.map((g) => g.id),
+  warnings: [],
+};
+export const profile = {
+  id: '1',
+  username: 'Roblox',
+  displayName: 'Roblox',
+  description: 'Test public biography',
+  createdAt: '2006-02-27T21:06:40Z',
+  isBanned: false,
+  verified: true,
+  avatarUrl: null,
+  observedAt: 1700000000000,
+  warnings: [],
+};

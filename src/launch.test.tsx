@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App';
+import { catalog } from './test/fixtures';
 import { defaultLibrary } from './lib/storage';
 import type {
   AcceptedRequest,
@@ -44,6 +45,7 @@ beforeEach(() => {
         };
       },
     ) => {
+      if (command === 'roblox_data') return { kind: 'catalog', data: catalog };
       if (command === 'load_library') return structuredClone(defaultLibrary);
       if (command === 'detect_installations') return [status];
       if (command === 'load_launch_history') return [...history];
@@ -96,7 +98,9 @@ describe('native launch UI with simulated IPC, not real client execution', () =>
   it('opens a validated experience action without passing a URL or claiming a join', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Explore game' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Explore game' }),
+    );
     const dialog = screen.getByRole('dialog');
     await user.click(
       within(dialog).getByRole('button', { name: 'Open experience page' }),
@@ -117,7 +121,9 @@ describe('native launch UI with simulated IPC, not real client execution', () =>
     expect(
       screen.getByRole('button', { name: 'Launch Roblox' }),
     ).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Explore game' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Explore game' }),
+    );
     expect(
       within(screen.getByRole('dialog')).getByRole('button', {
         name: 'Open experience page',

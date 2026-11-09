@@ -1,6 +1,7 @@
 import { BookOpen, Compass, Grid2X2, Heart, List, Clock3 } from 'lucide-react';
 import { useState } from 'react';
-import { games } from '../data/games';
+import { officialPage } from '../lib/roblox';
+import { useCatalog } from '../hooks/useCatalog';
 import type { LibraryStore } from '../hooks/useLibrary';
 import type { Game, Page } from '../lib/types';
 import { EmptyState, GameCard, Loading } from '../components/ui';
@@ -18,6 +19,10 @@ export function Library({
   selectGame: (game: Game) => void;
 }) {
   const launcher = useLauncher();
+  const { experiences: games } = useCatalog();
+  const unknownIds = library.data.favorites.filter(
+    (id) => !games.some((g) => g.id === id),
+  );
   const [tab, setTab] = useState('Favorites');
   const [view, setView] = useState('grid');
   const [sort, setSort] = useState('Recently added');
@@ -108,18 +113,50 @@ export function Library({
           Your saved data has not been overwritten. Resolve the storage error
           and try again.
         </EmptyState>
-      ) : results.length ? (
+      ) : ids.length ? (
         <>
           <p className="section-description library-description">
-            {results.length}{' '}
-            {results.length === 1 ? 'experience' : 'experiences'} · game details
-            use development fixtures
+            {ids.length} {ids.length === 1 ? 'experience' : 'experiences'} ·
+            game details from Roblox snapshots; unrecognized Place IDs are
+            preserved
           </p>
           <div
             className={
               view === 'grid' ? 'game-grid library-grid' : 'library-list'
             }
           >
+            {unknownIds.map((id) => (
+              <article className="panel unknown-experience" key={id}>
+                <h3>Place {id}</h3>
+                <p>
+                  Metadata unavailable. Look up its Universe ID in Discover;
+                  Place and Universe IDs are different.
+                </p>
+                {officialPage('games', id) ? (
+                  <a
+                    className="text-link"
+                    href={officialPage('games', id)!}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open official experience page
+                  </a>
+                ) : (
+                  <p>
+                    Stored identifier cannot form a valid Roblox Place URL. The
+                    record has been preserved.
+                  </p>
+                )}
+                <button
+                  className="text-button"
+                  disabled={!library.ready || library.saving}
+                  onClick={() => void library.toggleFavorite(id)}
+                  aria-label={`Remove Place ${id} from favorites`}
+                >
+                  Remove favorite
+                </button>
+              </article>
+            ))}
             {results.map((game) => (
               <GameCard
                 key={game.id}

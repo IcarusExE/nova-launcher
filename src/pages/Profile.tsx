@@ -8,24 +8,92 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { EmptyState, FixtureBadge, Loading } from '../components/ui';
+import { EmptyState, DataBadge, Loading, RobloxImage } from '../components/ui';
+import { apiError, robloxRequest } from '../lib/roblox';
+import type { ApiError, PublicProfile, UserPage } from '../lib/roblox';
 
-type SearchState = 'idle' | 'loading' | 'found' | 'empty' | 'error';
 export function Profile() {
   const [query, setQuery] = useState('');
   const [searched, setSearched] = useState('');
-  const [state, setState] = useState<SearchState>('idle');
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const search = () => {
-    clearTimeout(timer.current);
-    setSearched(query.trim());
-    setState('loading');
-    timer.current = setTimeout(
-      () =>
-        setState(query.trim().toLowerCase() === 'roblox' ? 'found' : 'empty'),
-      450,
-    );
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [page, setPage] = useState<UserPage | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready'>('idle');
+  const [error, setError] = useState<ApiError | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
+  const version = useRef(0);
+  useEffect(
+    () => () => {
+      ++version.current;
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [cooldownUntil]);
+  const remaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const run = async (
+    mode: 'exact' | 'search' | 'user',
+    value: string,
+    cursor: string | null = null,
+  ) => {
+    const current = ++version.current;
+    setStatus('loading');
+    setError(null);
+    if (mode !== 'user') {
+      setSearched(value);
+      setProfile(null);
+      if (!cursor) setPage(null);
+    }
+    try {
+      if (mode === 'search') {
+        const result = await robloxRequest(
+          { action: 'searchUsers', keyword: value, cursor },
+          'users',
+        );
+        if (current !== version.current) return;
+        setPage((previous) => ({
+          ...result,
+          users:
+            cursor && previous
+              ? [
+                  ...previous.users,
+                  ...result.users.filter(
+                    (u) => !previous.users.some((p) => p.id === u.id),
+                  ),
+                ]
+              : result.users,
+        }));
+        setNow(Date.now());
+        setCooldownUntil(Date.now() + result.retryAfterSeconds * 1000);
+      } else {
+        const result =
+          mode === 'exact'
+            ? await robloxRequest(
+                { action: 'lookupUsername', username: value },
+                'profile',
+              )
+            : await robloxRequest(
+                { action: 'lookupUser', userId: value },
+                'profile',
+              );
+        if (current !== version.current) return;
+        setProfile(result);
+        if (mode === 'exact') setPage(null);
+      }
+    } catch (e) {
+      if (current !== version.current) return;
+      const issue = apiError(e);
+      setError(issue);
+      if (issue.retryAfterSeconds) {
+        setNow(Date.now());
+        setCooldownUntil(Date.now() + issue.retryAfterSeconds * 1000);
+      }
+    } finally {
+      if (current === version.current) setStatus('ready');
+    }
   };
   return (
     <>
@@ -34,7 +102,7 @@ export function Profile() {
           <h1>A face behind the username.</h1>
           <p>Explore public profiles. Your credentials stay yours.</p>
         </div>
-        <FixtureBadge>Profile preview</FixtureBadge>
+        <DataBadge />
       </div>
       <div className="profile-layout">
         <div>
@@ -42,7 +110,7 @@ export function Profile() {
             className="profile-search"
             onSubmit={(e) => {
               e.preventDefault();
-              search();
+              void run('exact', query.trim());
             }}
           >
             <div className="search-input">
@@ -51,7 +119,12 @@ export function Profile() {
                 aria-label="Roblox username"
                 placeholder="Enter a Roblox username…"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  ++version.current;
+                  setStatus('idle');
+                  setError(null);
+                  setQuery(e.target.value);
+                }}
                 maxLength={20}
                 pattern="[A-Za-z0-9_]{3,20}"
                 title="Use 3–20 letters, numbers, or underscores"
@@ -62,95 +135,154 @@ export function Profile() {
                   type="button"
                   className="icon-button"
                   aria-label="Clear username"
-                  onClick={() => setQuery('')}
+                  onClick={() => {
+                    ++version.current;
+                    setQuery('');
+                    setStatus('idle');
+                    setProfile(null);
+                    setPage(null);
+                    setError(null);
+                  }}
                 >
                   <X size={16} />
                 </button>
               )}
             </div>
-            <button
-              className="button primary"
-              type="submit"
-              disabled={state === 'loading'}
-            >
+            <button className="button primary" type="submit">
               Search profile
+            </button>
+            <button
+              className="button"
+              type="button"
+              disabled={
+                remaining > 0 || !/^[A-Za-z0-9_]{3,20}$/.test(query.trim())
+              }
+              onClick={() => void run('search', query.trim())}
+            >
+              Find users
             </button>
           </form>
           <p className="profile-hint">
-            Development preview: try{' '}
-            <button className="text-button" onClick={() => setQuery('Roblox')}>
-              Roblox
-            </button>
-            . Other usernames show the empty state.
+            Search profile resolves a username. Find users searches public
+            matches, 10 per page. Roblox may limit searches to one request per
+            minute.
+            {remaining > 0 && (
+              <span role="status"> Search available in {remaining}s.</span>
+            )}
           </p>
           <section className="panel profile-result" aria-live="polite">
-            {state === 'loading' ? (
-              <Loading label="Loading sample public profile…" />
-            ) : state === 'idle' ? (
+            {status === 'loading' && (
+              <Loading label="Loading public Roblox data…" />
+            )}
+            {error && (
+              <div className="inline-error" role="alert">
+                <strong>
+                  {error.code === 'offline'
+                    ? 'Offline'
+                    : error.code === 'desktopRequired'
+                      ? 'Desktop app required'
+                      : 'Lookup unavailable'}
+                </strong>{' '}
+                · {error.message}
+              </div>
+            )}
+            {status === 'idle' && !profile && !page && (
               <EmptyState
                 title="Meet someone new"
                 icon={<UserRound size={32} />}
               >
-                Search the sample username to preview the public profile layout.
-                Live Roblox lookup is not connected yet.
+                Look up a public username. No Roblox login is required.
               </EmptyState>
-            ) : state === 'empty' ? (
-              <EmptyState title="No sample profile found">
-                “{searched}” isn't in the local fixture. Try Roblox to explore
-                the profile preview.
-              </EmptyState>
-            ) : state === 'error' ? (
-              <EmptyState
-                title="Profile preview interrupted"
-                action={
-                  <button className="button" onClick={search}>
-                    Try again
-                  </button>
-                }
-              >
-                This is a simulated error. No request was sent to Roblox.
-              </EmptyState>
-            ) : (
-              <div className="public-profile">
-                <FixtureBadge>Sample profile · not live data</FixtureBadge>
-                <div className="profile-identity">
-                  <div
-                    className="profile-avatar"
-                    aria-label="Placeholder avatar"
+            )}
+            {status === 'ready' &&
+              !error &&
+              !profile &&
+              !page?.users.length && (
+                <EmptyState title="No public profiles found">
+                  Roblox returned no public match for “{searched}”.
+                </EmptyState>
+              )}
+            {page && (
+              <div className="user-results">
+                <h3>Public matches for “{searched}”</h3>
+                {page.users.map((user) => (
+                  <button
+                    className="user-result"
+                    key={user.id}
+                    onClick={() => void run('user', user.id)}
                   >
-                    R
+                    <UserRound size={18} />
+                    <span>
+                      <strong>{user.displayName}</strong>
+                      <span>
+                        @{user.username}
+                        {user.verified ? ' · Verified' : ''}
+                      </span>
+                    </span>
+                    <ArrowUpRight size={16} />
+                  </button>
+                ))}
+                {page.nextCursor && (
+                  <button
+                    className="button"
+                    disabled={remaining > 0 || status === 'loading'}
+                    onClick={() =>
+                      void run('search', searched, page.nextCursor)
+                    }
+                  >
+                    More users
+                  </button>
+                )}
+              </div>
+            )}
+            {profile && (
+              <div className="public-profile">
+                <DataBadge>Public Roblox profile · API preview</DataBadge>
+                <div className="profile-identity">
+                  <div className="profile-avatar">
+                    <RobloxImage src={profile.avatarUrl} />
                   </div>
                   <div>
-                    <h2>Roblox</h2>
-                    <p>@Roblox</p>
+                    <h2>
+                      {profile.displayName}
+                      {profile.verified && (
+                        <ShieldCheck size={19} aria-label="Verified account" />
+                      )}
+                    </h2>
+                    <p>@{profile.username}</p>
                     <span className="profile-joined">
                       <CalendarDays size={14} />
-                      Sample join date: September 2006
+                      Joined{' '}
+                      {Number.isNaN(Date.parse(profile.createdAt))
+                        ? 'date unavailable'
+                        : new Date(profile.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
-                <p>
-                  This card previews public account information. Avatar art,
-                  biography, and counts will come from a verified public data
-                  integration in a later milestone.
+                <p className="public-description">
+                  {profile.description || 'No public biography.'}
                 </p>
                 <div className="profile-stats">
                   <div>
-                    <strong>—</strong>
-                    <span>Friends</span>
+                    <strong>{profile.id}</strong>
+                    <span>User ID</span>
                   </div>
                   <div>
-                    <strong>—</strong>
-                    <span>Followers</span>
-                  </div>
-                  <div>
-                    <strong>—</strong>
-                    <span>Following</span>
+                    <strong>{profile.isBanned ? 'Banned' : 'Public'}</strong>
+                    <span>Account status</span>
                   </div>
                 </div>
+                {profile.warnings.map((warning, index) => (
+                  <p className="muted" key={index}>
+                    {warning.message}
+                  </p>
+                ))}
+                <p className="quiet-label">
+                  Observed {new Date(profile.observedAt).toLocaleString()}
+                </p>
                 <a
                   className="button primary"
-                  href="https://www.roblox.com/users/1/profile"
+                  href={`https://www.roblox.com/users/${profile.id}/profile`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -160,15 +292,6 @@ export function Profile() {
               </div>
             )}
           </section>
-          <details className="preview-tools profile-preview-tools">
-            <summary>Preview states</summary>
-            <div>
-              <button onClick={() => setState('loading')}>Loading</button>
-              <button onClick={() => setState('empty')}>Empty</button>
-              <button onClick={() => setState('error')}>Error</button>
-              <button onClick={() => setState('idle')}>Reset</button>
-            </div>
-          </details>
         </div>
         <aside>
           <section className="panel privacy-panel">

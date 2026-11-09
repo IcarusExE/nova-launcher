@@ -1,4 +1,9 @@
+import { mockPublicData } from './public-data';
 import { expect, test } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await mockPublicData(page);
+});
 
 test('desktop navigation, persistence, dialogs, and responsive layouts', async ({
   page,

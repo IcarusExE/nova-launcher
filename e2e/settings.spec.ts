@@ -1,3 +1,4 @@
+import { mockPublicData } from './public-data';
 import { expect, test, type Page } from '@playwright/test';
 import { defaultLibrary } from '../src/lib/storage';
 
@@ -92,6 +93,10 @@ async function nativeStorage(page: Page, delay = 250) {
     { defaults: structuredClone(defaultLibrary), delay },
   );
 }
+
+test.beforeEach(async ({ page }) => {
+  await mockPublicData(page);
+});
 
 test('themes and accessible accents apply across pages, follow system changes, and survive browser restart', async ({
   page,

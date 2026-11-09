@@ -2123,3 +2123,131 @@ select {
   top: 50%;
   transform: translateY(-50%);
 }
+
+/* Public data additions use the existing appearance tokens. */
+.image-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+}
+.featured-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+}
+.data-feedback {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.data-feedback p {
+  margin: 8px 0;
+}
+.data-feedback .loading-state {
+  min-height: 44px;
+  padding: 10px;
+}
+.universe-lookup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+}
+.universe-lookup input {
+  min-width: 0;
+  flex: 1;
+  width: 160px;
+}
+.unknown-experience {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.unknown-experience p {
+  color: var(--muted);
+  font-size: 12px;
+}
+.profile-search {
+  flex-wrap: wrap;
+}
+.profile-search .search-input {
+  min-width: 180px;
+}
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-avatar .image-unavailable {
+  min-height: 0;
+}
+.profile-avatar .image-unavailable span {
+  display: none;
+}
+.public-description,
+.game-details .detail-body > p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.user-results {
+  margin-bottom: 24px;
+}
+.user-result {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.user-result > span {
+  flex: 1;
+}
+.user-result span span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.profile-identity h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.featured h2 {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.detail-body h2 {
+  overflow-wrap: anywhere;
+}
+.experience-description {
+  max-height: 200px;
+  overflow-y: auto;
+}
+.profile-identity > div {
+  min-width: 0;
+}
+.profile-identity h2 {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}

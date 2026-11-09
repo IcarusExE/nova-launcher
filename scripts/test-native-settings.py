@@ -136,12 +136,27 @@ def appearance(app):
     return element(app, "Compact game cards", "toggle button")
 
 
+def game_button(app):
+    return wait_for(lambda: next((node for node in walk(app) if node.get_role_name() == "button" and node.get_name().startswith("View ")), None), "experience card", timeout=30)
+
+
+def seed_metadata(directory):
+    # Test-only cache snapshot. Never shipped as production content or claimed live.
+    target = directory / "io.novalauncher.desktop"
+    target.mkdir(parents=True, exist_ok=True)
+    game = {"id":"2753915549", "universeId":"994732206", "name":"Native appearance test snapshot", "description":"Isolated native test metadata", "creator":"Test", "creatorId":"1", "creatorType":"User", "category":"RPG", "iconUrl":None, "thumbnailUrl":None, "players":None, "upVotes":None, "downVotes":None, "observedAt":1700000000000, "cached":True}
+    with sqlite3.connect(target / "roblox-cache.sqlite3") as db:
+        db.execute("CREATE TABLE metadata(place_id TEXT PRIMARY KEY, universe_id TEXT NOT NULL, value TEXT NOT NULL, observed_at INTEGER NOT NULL)")
+        db.execute("INSERT INTO metadata VALUES(?,?,?,?)", (game["id"], game["universeId"], json.dumps(game), game["observedAt"]))
+
+
 def run(binary):
     with tempfile.TemporaryDirectory(prefix="nova-settings-test-") as temporary:
         directory = Path(temporary)
         path = directory / "io.novalauncher.desktop" / "nova.sqlite3"
+        seed_metadata(directory)
         with application(binary, directory) as app:
-            normal_height = element(app, "View Brookhaven RP", "button").get_component_iface().get_extents(Atspi.CoordType.WINDOW).height
+            normal_height = game_button(app).get_component_iface().get_extents(Atspi.CoordType.WINDOW).height
             compact = appearance(app)
             select(app, "Color theme", "Light")
             saved(path, theme="light")
@@ -156,7 +171,7 @@ def run(binary):
             saved(path, compactCards=True, reduceMotion=True)
             wait_for(lambda: checked(compact) and checked(motion), "native switch states")
             click(element(app, "Home", "button"))
-            compact_height = element(app, "View Brookhaven RP", "button").get_component_iface().get_extents(Atspi.CoordType.WINDOW).height
+            compact_height = game_button(app).get_component_iface().get_extents(Atspi.CoordType.WINDOW).height
             assert compact_height < normal_height, (compact_height, normal_height)
             compact = appearance(app)
             # A real SQLite transaction rejection must roll the optimistic UI back.

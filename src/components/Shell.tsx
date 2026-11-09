@@ -183,7 +183,7 @@ export function Shell({
         <footer className="app-footer">
           <span>
             <span className="status-dot violet" />
-            Development preview
+            Public data preview
           </span>
           <span>Independent launcher. Not affiliated with Roblox.</span>
         </footer>

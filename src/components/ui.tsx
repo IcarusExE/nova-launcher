@@ -9,15 +9,17 @@ import {
   ThumbsUp,
   Users,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { rating } from '../lib/roblox';
+import { useCatalog } from '../hooks/useCatalog';
 import type { Game } from '../lib/types';
 import { useLauncher } from '../hooks/useLauncher';
 import { LaunchFeedback } from './LaunchFeedback';
 import type { LibraryStore } from '../hooks/useLibrary';
 
-export function FixtureBadge({
-  children = 'Development fixtures',
+export function DataBadge({
+  children = 'Public Roblox API preview',
 }: {
   children?: ReactNode;
 }) {
@@ -99,19 +101,19 @@ export function GameCard({
         aria-label={`View ${game.name}`}
       >
         <div className="game-art">
-          <img src={`/artwork/${game.image}.webp`} alt="" loading="lazy" />
+          <RobloxImage src={game.iconUrl} />
         </div>
         <div className="game-copy">
           <h3>{game.name}</h3>
-          <p>{game.category}</p>
+          <p>{game.category ?? 'Category unavailable'}</p>
           <div className="game-metrics">
             <span>
               <ThumbsUp size={12} />
-              {game.fixtureRating}%
+              {rating(game) === null ? '—' : `${rating(game)}%`}
             </span>
             <span>
               <Users size={12} />
-              {formatCount(game.fixturePlayers)}
+              {game.players === null ? '—' : formatCount(game.players)}
             </span>
           </div>
         </div>
@@ -128,7 +130,11 @@ export function GameCard({
     </article>
   );
 }
-export const formatCount = (count: number) => `${(count / 1000).toFixed(1)}K`;
+export const formatCount = (count: number) =>
+  new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(count);
 export function GameDetails({
   game,
   library,
@@ -143,7 +149,7 @@ export function GameDetails({
   return (
     <div className="game-details">
       <div className="detail-art">
-        <img src={`/artwork/${game.image}.webp`} alt="" />
+        <RobloxImage src={game.thumbnailUrl ?? game.iconUrl} />
         {onClose && (
           <button
             className="icon-button detail-close"
@@ -155,21 +161,36 @@ export function GameDetails({
         )}
       </div>
       <div className="detail-body">
-        <FixtureBadge>Sample game details</FixtureBadge>
+        <DataBadge>
+          {game.cached ? 'Saved Roblox snapshot' : 'Public Roblox API preview'}
+        </DataBadge>
         <h2>{game.name}</h2>
         <p className="muted">By {game.creator}</p>
-        <p>{game.description}</p>
+        <p
+          className="experience-description"
+          tabIndex={0}
+          aria-label="Experience description"
+        >
+          {game.description || 'No public description.'}
+        </p>
         <div className="detail-stats">
           <span>
             <ThumbsUp size={17} />
-            <b>{game.fixtureRating}%</b> sample rating
+            <b>{rating(game) === null ? '—' : `${rating(game)}%`}</b> approval
           </span>
           <span>
             <Users size={17} />
-            <b>{formatCount(game.fixturePlayers)}</b> sample players
+            <b>
+              {game.players === null ? '—' : formatCount(game.players)}
+            </b>{' '}
+            playing (snapshot)
           </span>
         </div>
-        <span className="tag">{game.category}</span>
+        <p className="quiet-label">
+          Observed {new Date(game.observedAt).toLocaleString()} · Place{' '}
+          {game.id} · Universe {game.universeId}
+        </p>
+        <span className="tag">{game.category ?? 'Category unavailable'}</span>
         <div className="detail-actions">
           <button
             className="button primary"
@@ -252,5 +273,80 @@ export function ExternalText({
       {children}
       <ExternalLink size={14} />
     </a>
+  );
+}
+
+/** Failed or pending CDN images never fall back to development artwork. */
+export function RobloxImage({
+  src,
+  className,
+}: {
+  src: string | null;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState<string | null>(null);
+  return src && failed !== src ? (
+    <img
+      className={className}
+      src={src}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      crossOrigin="anonymous"
+      onError={() => setFailed(src)}
+    />
+  ) : (
+    <span
+      className={`image-unavailable ${className ?? ''}`}
+      aria-label="Artwork unavailable"
+    >
+      <Gamepad2 size={28} />
+      <span>Artwork unavailable</span>
+    </span>
+  );
+}
+export function CatalogFeedback() {
+  const catalog = useCatalog();
+  const issues = [
+    ...(catalog.error ? [catalog.error] : []),
+    ...catalog.warnings,
+  ];
+  return (
+    <div className="data-feedback" aria-live="polite">
+      {catalog.loading && (
+        <Loading
+          label={
+            catalog.experiences.length
+              ? 'Refreshing Roblox data…'
+              : 'Loading Roblox data…'
+          }
+        />
+      )}
+      {issues.map((issue, index) => (
+        <p role="status" key={`${issue.code}-${index}`}>
+          <strong>
+            {issue.code === 'offline'
+              ? 'Offline'
+              : issue.code === 'desktopRequired'
+                ? 'Desktop app required'
+                : 'Data unavailable'}
+          </strong>{' '}
+          · {issue.message}
+        </p>
+      ))}
+      {catalog.experiences.some((g) => g.cached) && (
+        <p>
+          Saved snapshots may be out of date. Favorites and launch requests
+          remain on this device.
+        </p>
+      )}
+      <button
+        className="text-button"
+        disabled={catalog.loading}
+        onClick={() => void catalog.refresh()}
+      >
+        Refresh Roblox data
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 pub mod adapters;
 pub mod launch;
+pub mod roblox;
 pub mod storage;
 
 use storage::{Database, LibraryData};
@@ -16,6 +17,22 @@ fn reveal_main_window(window: tauri::WebviewWindow, theme: storage::Theme) -> Re
     let background = window.set_background_color(Some(color));
     window.show().map_err(|e| e.to_string())?;
     background.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn roblox_data(
+    request: roblox::models::ApiRequest,
+    service: State<'_, roblox::ApiState>,
+) -> Result<roblox::models::ApiResponse, roblox::models::ApiError> {
+    let service = service.0.clone()?;
+    tauri::async_runtime::spawn_blocking(move || service.execute(request))
+        .await
+        .map_err(|_| {
+            roblox::models::ApiError::new(
+                roblox::models::ErrorCode::Unavailable,
+                "The Roblox request worker stopped. Try again.",
+            )
+        })?
 }
 
 #[tauri::command]
@@ -84,9 +101,13 @@ pub fn run() {
             let connection = rusqlite::Connection::open(directory.join("nova.sqlite3"))?;
             storage::migrate(&connection).map_err(std::io::Error::other)?;
             app.manage(Database(std::sync::Mutex::new(connection)));
+            let cache_path = directory.join("roblox-cache.sqlite3");
+            let service = std::thread::spawn(move || roblox::Service::new(&cache_path).map(std::sync::Arc::new)).join()
+                .unwrap_or_else(|_| Err(roblox::models::ApiError::cache()));
+            app.manage(roblox::ApiState(service));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![reveal_main_window, load_library, save_library, detect_installations, load_launch_history, launch_request])
+        .invoke_handler(tauri::generate_handler![roblox_data, reveal_main_window, load_library, save_library, detect_installations, load_launch_history, launch_request])
         .run(tauri::generate_context!())
         .expect("Nova could not start. Check that its application data directory is writable and desktop dependencies are installed.");
 }

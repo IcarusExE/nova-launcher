@@ -2,6 +2,13 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { catalog, profile } from './test/fixtures';
+vi.mock('./lib/roblox', async (original) => ({
+  ...(await original<typeof import('./lib/roblox')>()),
+  robloxRequest: vi.fn(async (_request, kind) =>
+    kind === 'profile' ? profile : catalog,
+  ),
+}));
 
 describe('Nova milestone flows', () => {
   it('saves a favorite and restores it after remounting', async () => {
@@ -39,7 +46,7 @@ describe('Nova milestone flows', () => {
     );
     expect(await screen.findByText('Good things belong here.')).toBeVisible();
   });
-  it('filters the catalog, clears empty results, and recovers from its explicit error preview', async () => {
+  it('filters the catalog, clears empty results,', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Discover' }));
@@ -57,13 +64,6 @@ describe('Nova milestone flows', () => {
     expect(
       screen.queryByRole('button', { name: 'View Blade Ball' }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByText('Preview states'));
-    await user.click(screen.getByRole('button', { name: 'Error' }));
-    expect(screen.getByText('Catalog preview interrupted')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(
-      screen.getByRole('button', { name: 'View Brookhaven RP' }),
-    ).toBeVisible();
   });
   it('keeps corrupt libraries unchanged and disables saving', async () => {
     localStorage.setItem('nova-library-v1', '{broken');
@@ -79,7 +79,7 @@ describe('Nova milestone flows', () => {
   it('does not show a failed save as a favorite', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const button = screen.getByRole('button', {
+    const button = await screen.findByRole('button', {
       name: 'Add Brookhaven RP to favorites',
     });
     await waitFor(() => expect(button).toBeEnabled());
@@ -120,7 +120,7 @@ describe('Nova milestone flows', () => {
       await screen.findByRole('heading', { name: 'Your library' }),
     ).toBeVisible();
   });
-  it('searches only the labeled profile fixture and links to the public website', async () => {
+  it('looks up a public profile through the isolated service mock and links to the public website', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Profile' }));
@@ -130,7 +130,7 @@ describe('Nova milestone flows', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Search profile' }));
     expect(
-      await screen.findByText('Sample profile · not live data'),
+      await screen.findByText('Public Roblox profile · API preview'),
     ).toBeVisible();
     expect(
       screen.getByRole('link', { name: 'Open public Roblox profile' }),
@@ -140,7 +140,9 @@ describe('Nova milestone flows', () => {
   it('opens a game dialog with an honest website fallback', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Explore game' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Explore game' }),
+    );
     const dialog = screen.getByRole('dialog');
     expect(
       within(dialog).getByRole('link', { name: 'View on Roblox' }),

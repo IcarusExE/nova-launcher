@@ -97,14 +97,40 @@ Database access is serialized with a mutex. Startup errors stop initialization
 with a diagnostic. Read errors surface with a retry action, and failed library
 writes do not appear successful. Nova does not replace or reset corrupt data.
 
-## Public data and fixtures
+## Public Roblox data
 
-There is no live Roblox API client. Catalog counts, ratings, ordering,
-descriptions, and profile previews remain labeled development fixtures. Profile
-search supports the sample username `Roblox`, linked to `/users/1/profile`.
-Fixture metadata is never used as installation status, request history, or proof
-of a live player session. Public website links remain available independently.
-Discover and Profile retain their loading/error previews and empty states.
+`roblox_data` is a tagged, typed native command. React supplies only an action and
+validated identifier/search cursor; Rust selects fixed official HTTPS endpoints.
+No frontend URL, authorization header, API key, cookie or process input is accepted.
+Blocking HTTPS runs off the UI thread, with system TLS, redirects disabled, a 1 MiB
+response limit, 3-second connection / 8-second request timeouts and at most two
+attempts. Retry-After supports delta seconds and HTTP dates. Long waits become
+endpoint cooldowns rather than sleeping workers; successful exhausted quotas also
+set cooldowns. Caches are bounded (128 HTTP entries, four active requests), and
+explicit UI search plus request deduplication avoid per-render traffic. Profiles
+and search results expire in memory; experience metadata expires for refresh but
+also remains available as a timestamped offline snapshot in a separate disposable
+SQLite cache, capped at 256 experiences. Per-endpoint TTLs are 60–300 seconds.
+
+`CatalogProvider` loads cached metadata then refreshes the four curated Universe
+IDs. React generation guards prevent stale searches from overwriting current UI.
+All API names/descriptions/creators/stats originate from verified responses. The
+only production starting data is the four IDs, not rankings or fabricated counts.
+Nullable metrics and unavailable images are explicit; zero-vote approval is absent.
+No development fixture is imported by production. Browser preview reports that
+live data needs the desktop app; tests replace the service explicitly.
+
+Experience `id` is the root Place ID, while `universeId` is a separate field. Only
+metadata responses establish their mapping. `nova.sqlite3`, schema v2, preferences,
+favorites and history are unchanged; a separate `roblox-cache.sqlite3` stores the
+metadata, with revalidated identifiers and image URLs on reads. Unknown legacy
+Place favorites remain visible with an official page link and explicit remove
+action. The launcher never guesses a Universe ID from a Place ID or rewrites
+existing favorite/history IDs. Metadata cache failures don't reset the library.
+
+API stability, observed limits, authentication decisions and blocked features are
+recorded in [the API research](milestone-03-api-research.md). Experimental public
+contracts are labeled as preview; no hosted backend or new authentication exists.
 
 ## Desktop security and scope
 
@@ -114,12 +140,12 @@ Discover and Profile retain their loading/error previews and empty states.
 - No HTTP, shell, or unrestricted filesystem plugin exposed to the frontend.
 - Existing public links use Tauri opener scoped to `https://www.roblox.com/*`.
   Native launch commands do not take URLs through that interface.
-- Production CSP permits local assets and IPC, without remote scripts, fonts,
-  images, frames, or data requests.
+- Production CSP permits local assets, IPC and validated HTTPS `*.rbxcdn.com`
+  images. Remote scripts, fonts, frames and browser API requests remain blocked.
+  Images send no referrer; native HTTP has no authentication or cookie jar.
 - Window controls are limited to the existing window operations, with surfaced
   errors. The native frame has a 900 × 640 minimum; browser layouts adapt further.
-- Discord RPC, automatic updates, startup services, and live Roblox APIs are absent.
+- Discord RPC, automatic updates and startup services are absent.
 
-Dependencies remain locked. Reference artwork still needs authorized replacements
-before distribution. See [Milestone 02 verification](milestone-02-verification.md)
+Dependencies remain locked. Unused reference artwork should be excluded or cleared for redistribution before packaging. See [Milestone 02 verification](milestone-02-verification.md)
 for source evidence, hardware coverage, and the outstanding Windows release gate.

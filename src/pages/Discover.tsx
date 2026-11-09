@@ -1,14 +1,15 @@
-import { SlidersHorizontal, Search, X, Heart, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { categories, filterGames, games } from '../data/games';
-import type { Category, Game } from '../lib/types';
+import { SlidersHorizontal, Search, X, Heart } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { filterGames, apiError } from '../lib/roblox';
+import type { ApiError } from '../lib/roblox';
+import { useCatalog } from '../hooks/useCatalog';
 import type { LibraryStore } from '../hooks/useLibrary';
 import {
   EmptyState,
-  FixtureBadge,
+  DataBadge,
   GameCard,
   GameDetails,
-  Loading,
+  CatalogFeedback,
 } from '../components/ui';
 
 export function Discover({
@@ -20,31 +21,44 @@ export function Discover({
   query: string;
   setQuery: (value: string) => void;
 }) {
-  const [category, setCategory] = useState<Category>('All games');
-  const [sort, setSort] = useState('Popular');
+  const catalog = useCatalog();
+  const [category, setCategory] = useState('All games');
+  const [sort, setSort] = useState('Playing');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [selected, setSelected] = useState<Game>(games[0]);
-  const [status, setStatus] = useState<'ready' | 'loading' | 'error'>(
-    'loading',
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [universe, setUniverse] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<ApiError | null>(null);
+  const lookupVersion = useRef(0);
+  useEffect(
+    () => () => {
+      ++lookupVersion.current;
+    },
+    [],
   );
-  useEffect(() => {
-    const timer = setTimeout(() => setStatus('ready'), 300);
-    return () => clearTimeout(timer);
-  }, []);
   const results = filterGames(
+    catalog.experiences,
     query,
     category,
     sort,
     favoritesOnly ? library.data.favorites : undefined,
   );
+  const selected =
+    catalog.experiences.find((g) => g.id === selectedId) ?? results[0];
+  const categories = [
+    'All games',
+    ...new Set(
+      catalog.experiences.flatMap((g) => (g.category ? [g.category] : [])),
+    ),
+  ];
   return (
     <>
       <div className="page-heading">
         <div>
           <h1>Discover</h1>
-          <p>Find a new world to get lost in.</p>
+          <p>Explore fetched experiences or look up a Universe ID.</p>
         </div>
-        <FixtureBadge />
+        <DataBadge />
       </div>
       <div className="discover-layout">
         <div className="discover-catalog">
@@ -53,7 +67,7 @@ export function Discover({
             <input
               id="discover-search"
               aria-label="Search games"
-              placeholder="Search games or creators…"
+              placeholder="Filter loaded games or creators…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -67,6 +81,69 @@ export function Discover({
               </button>
             )}
           </div>
+          <p className="quiet-label">
+            <a
+              className="text-link"
+              href="https://www.roblox.com/discover"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Roblox Discover
+            </a>{' '}
+            · Filters loaded metadata only. General Roblox experience search is
+            unavailable through verified anonymous APIs.
+          </p>
+          <form
+            className="universe-lookup"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const version = ++lookupVersion.current;
+              setLookupLoading(true);
+              setLookupError(null);
+              void catalog
+                .lookupUniverse(universe)
+                .then((game) => {
+                  if (version === lookupVersion.current) {
+                    setSelectedId(game.id);
+                    setQuery('');
+                    setCategory('All games');
+                    setFavoritesOnly(false);
+                  }
+                })
+                .catch((e) => {
+                  if (version === lookupVersion.current)
+                    setLookupError(apiError(e));
+                })
+                .finally(() => {
+                  if (version === lookupVersion.current)
+                    setLookupLoading(false);
+                });
+            }}
+          >
+            <label htmlFor="universe-id">Universe ID</label>
+            <input
+              id="universe-id"
+              inputMode="numeric"
+              pattern="[1-9][0-9]{0,19}"
+              maxLength={20}
+              required
+              placeholder="e.g. 994732206"
+              value={universe}
+              onChange={(e) => {
+                ++lookupVersion.current;
+                setLookupLoading(false);
+                setUniverse(e.target.value);
+              }}
+            />
+            <button className="button" disabled={lookupLoading}>
+              {lookupLoading ? 'Looking up…' : 'Look up experience'}
+            </button>
+          </form>
+          {lookupError && (
+            <p role="alert" className="inline-error">
+              {lookupError.message}
+            </p>
+          )}
           <div className="category-tabs" aria-label="Game categories">
             {categories.map((c) => (
               <button
@@ -90,7 +167,7 @@ export function Discover({
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
               >
-                <option>Popular</option>
+                <option>Playing</option>
                 <option>Top rated</option>
                 <option>Name</option>
               </select>
@@ -105,72 +182,67 @@ export function Discover({
               Favorites
             </button>
           </div>
-          {status === 'loading' ? (
-            <Loading label="Loading development catalog…" />
-          ) : status === 'error' ? (
-            <EmptyState
-              title="Catalog preview interrupted"
-              icon={<RefreshCw size={28} />}
-              action={
-                <button className="button" onClick={() => setStatus('ready')}>
-                  Try again
-                </button>
-              }
-            >
-              This is the simulated error state. Reload the local fixture
-              catalog to continue.
-            </EmptyState>
-          ) : results.length ? (
+          <CatalogFeedback />
+          {results.length ? (
             <div className="game-grid discover-grid">
               {results.map((game) => (
                 <div
-                  className={selected.id === game.id ? 'selected-game' : ''}
+                  className={selected?.id === game.id ? 'selected-game' : ''}
                   key={game.id}
                 >
                   <GameCard
                     game={game}
                     library={library}
-                    onSelect={setSelected}
+                    onSelect={(g) => setSelectedId(g.id)}
                   />
                 </div>
               ))}
             </div>
           ) : (
-            <EmptyState
-              title="No games found"
-              action={
-                <button
-                  className="button"
-                  onClick={() => {
-                    setQuery('');
-                    setCategory('All games');
-                    setFavoritesOnly(false);
-                  }}
-                >
-                  Clear filters
-                </button>
-              }
-            >
-              Try another search or category, or add games to your favorites.
-            </EmptyState>
+            !catalog.loading && (
+              <EmptyState
+                title={
+                  catalog.experiences.length
+                    ? 'No games found'
+                    : 'No experience data available'
+                }
+                action={
+                  catalog.experiences.length ? (
+                    <button
+                      className="button"
+                      onClick={() => {
+                        setQuery('');
+                        setCategory('All games');
+                        setFavoritesOnly(false);
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  ) : undefined
+                }
+              >
+                Try another filter or a verified Universe ID. No sample results
+                are substituted.
+              </EmptyState>
+            )
           )}
           <div className="catalog-bottom">
-            <span>Local fixture catalog · no live connection</span>
-            <details className="preview-tools">
-              <summary>Preview states</summary>
-              <div>
-                <button onClick={() => setStatus('loading')}>Loading</button>
-                <button onClick={() => setStatus('error')}>Error</button>
-                <button onClick={() => setStatus('ready')}>Ready</button>
-              </div>
-            </details>
+            <span>
+              Player and rating values are snapshots when supplied by Roblox.
+            </span>
           </div>
         </div>
         <aside
           className="panel discover-detail"
           aria-label="Selected game details"
         >
-          <GameDetails game={selected} library={library} />
+          {selected ? (
+            <GameDetails game={selected} library={library} />
+          ) : (
+            <EmptyState title="Choose an experience">
+              Public metadata will appear here.
+            </EmptyState>
+          )}
         </aside>
       </div>
     </>

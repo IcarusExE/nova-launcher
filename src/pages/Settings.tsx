@@ -380,7 +380,7 @@ export function Settings({
               <img src="/nova.svg" alt="Nova" />
               <h2>Nova Launcher</h2>
               <p>A considered home for your Roblox experiences.</p>
-              <span className="tag">Version 0.1.0 · Milestone 02 preview</span>
+              <span className="tag">Version 0.1.0 · Public API preview</span>
               <p>
                 Built with Tauri 2, Rust, React, and TypeScript. Local desktop
                 data is stored in SQLite. Open source under the MIT license.
